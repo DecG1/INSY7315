@@ -1,14 +1,20 @@
 
 // ReportsPage: displays analytics, charts, and profitability tables
 import React, { useState } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button, TextField, Divider, Table, TableHead, TableRow, TableCell, TableBody } from "@mui/material";
-import { BarChart3 } from "lucide-react";
-import SectionTitle from "../components/SectionTitle";
-import MetricCard from "../components/MetricCard";
-import StatusChip from "../components/StatusChip";
-import { currency } from "../utils/helpers";
-import { weeklyFinances, costTrends, depletion, dishProfitability } from "../utils/mockData";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import {
+  Box,
+  Card,
+  CardContent,
+  Avatar,
+  Typography,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button
+} from "@mui/material";
+import { brandRed, lightPink } from "./helpers.js"; 
 
 /**
  * ReportsPage

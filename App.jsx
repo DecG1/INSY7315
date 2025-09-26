@@ -1,25 +1,34 @@
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
-// Main App component: handles authentication and theme
-import React, { useState } from "react";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import theme from "./utils/theme";
-import AppShell from "./AppShell";
-import LoginPage from "./pages/LoginPage";
+// Import your pages
+import Dashboard from "./Dashboard.jsx";
+import LoginPage from "./LoginPage.jsx";
+import ReportsPage from "./ReportsPage.jsx";
+import RecipesPage from "./RecipesPage.jsx";
+import InventoryPage from "./InventoryPage.jsx";
 
-/**
- * App root component
- * - Shows LoginPage if not authenticated
- * - Shows AppShell (main app) if user is logged in
- * - Applies MUI theme and baseline CSS
- */
 export default function App() {
-  // User state: null means not logged in
-  const [user, setUser] = useState(null);
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {/* Show main app or login page based on user state */}
-      {user ? <AppShell onLogout={() => setUser(null)} /> : <LoginPage onLogin={setUser} />}
-    </ThemeProvider>
+    <Router>
+      <div style={{ padding: 20, fontFamily: "system-ui" }}>
+        <h2>INSY7315 App Navigation</h2>
+        <nav style={{ marginBottom: 20 }}>
+          <Link to="/">Dashboard</Link> |{" "}
+          <Link to="/login">Login</Link> |{" "}
+          <Link to="/reports">Reports</Link> |{" "}
+          <Link to="/recipes">Recipes</Link> |{" "}
+          <Link to="/inventory">Inventory</Link>
+        </nav>
+
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/recipes" element={<RecipesPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
