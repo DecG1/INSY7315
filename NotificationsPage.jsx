@@ -1,11 +1,13 @@
 
 // NotificationsPage: displays alerts, toggles, and notification history
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Grid, Card, CardContent, Typography, Button, Switch, Table, TableHead, TableRow, TableCell, TableBody, Divider } from "@mui/material";
 import { Bell } from "lucide-react";
-import SectionTitle from "../components/SectionTitle";
-import StatusChip from "../components/StatusChip";
-import { brandRed } from "../utils/helpers";
+import SectionTitle from "./SectionTitle.jsx";
+import StatusChip from "./StatusChip.jsx";
+import { brandRed } from "./helpers.js";
+import { listNotifications } from "./analyticsService.js";
+import { db } from "./db.js";
 
 /**
  * NotificationsPage
@@ -17,106 +19,344 @@ const NotificationsPage = () => {
   const [soon, setSoon] = useState(true);
   const [lowStock, setLowStock] = useState(true);
 
-  // Mock notification history
-  const history = [
-    { date: "2024-07-28", time: "10:30", type: "Expiry", item: "Fresh Mozzarella", details: "Expired", status: "Resolved" },
-    { date: "2024-07-27", time: "09:00", type: "Depletion", item: "San Marzano Tomatoes", details: "Low stock (3 cans)", status: "Acknowledged" },
-  ];
+  // Live notifications from DB
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function refresh() {
+    setLoading(true);
+    try {
+      const rows = await listNotifications();
+      setHistory(rows);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { refresh(); }, []);
+
+  async function clearAll() {
+    await db.notifications.clear();
+    await refresh();
+  }
 
   return (
-    <Box className="p-6 space-y-4">
+    <Box
+      sx={{
+        p: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        animation: 'fadeIn 0.6s ease-in-out',
+        '@keyframes fadeIn': {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+      }}
+    >
       {/* Page title */}
-      <SectionTitle icon={Bell} title="Notifications & Alerts" />
+      <SectionTitle
+        icon={Bell}
+        title="Notifications & Alerts"
+        action={
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" onClick={refresh} disabled={loading}>Refresh</Button>
+            <Button variant="text" color="error" onClick={clearAll} disabled={loading}>Clear All</Button>
+          </Box>
+        }
+      />
 
-      {/* Alert toggles */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <SectionTitle title="Expiry Alert" action={<Button variant="outlined">View All Expiry Alerts</Button>} />
-              <Typography variant="body2" className="mb-2">2 Critical Alerts, 5 Upcoming</Typography>
-              <Box className="flex items-center gap-2">
-                <Switch checked={soon} onChange={() => setSoon(v => !v)} /> Enable Soon-to-Expire/Expired Alerts
+      {/* Alert Settings */}
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>
+            Alert Preferences
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: '12px',
+                  border: '1px solid',
+                  borderColor: 'rgba(0, 0, 0, 0.08)',
+                  bgcolor: soon ? 'rgba(139, 0, 0, 0.02)' : 'transparent',
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Expiry Notifications
+                  </Typography>
+                  <Switch 
+                    checked={soon} 
+                    onChange={() => setSoon(v => !v)}
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: brandRed,
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: brandRed,
+                      },
+                    }}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Get notified about expiring or expired ingredients
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  Status: {soon ? '✓ Active' : '✗ Disabled'}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <SectionTitle title="Inventory Depletion" action={<Button variant="outlined">View All Low Stock Alerts</Button>} />
-              <Typography variant="body2" className="mb-2">1 Low Stock Alert</Typography>
-              <Box className="flex items-center gap-2">
-                <Switch checked={lowStock} onChange={() => setLowStock(v => !v)} /> Enable Low Stock Alerts
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  borderRadius: '12px',
+                  border: '1px solid',
+                  borderColor: 'rgba(0, 0, 0, 0.08)',
+                  bgcolor: lowStock ? 'rgba(139, 0, 0, 0.02)' : 'transparent',
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={600}>
+                    Low Stock Alerts
+                  </Typography>
+                  <Switch 
+                    checked={lowStock} 
+                    onChange={() => setLowStock(v => !v)}
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: brandRed,
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: brandRed,
+                      },
+                    }}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Get notified when inventory drops below threshold
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  Status: {lowStock ? '✓ Active' : '✗ Disabled'}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
-      {/* Critical and urgent alerts */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderLeft: `6px solid ${brandRed}` }}>
-            <CardContent>
-              <Typography variant="overline" color="error">CRITICAL</Typography>
-              <Typography variant="subtitle1" fontWeight={700}>Expired Ingredient – San Daniele Prosciutto (500g)</Typography>
-              <Typography variant="body2" color="text.secondary">Expired July 28, 2024</Typography>
-              <Box className="flex gap-2 mt-2">
-                <Button variant="outlined" color="error">Action Required</Button>
-                <Button variant="contained" color="error">Resolve</Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
-          <Card sx={{ borderLeft: "6px solid #ff9800" }}>
-            <CardContent>
-              <Typography variant="overline" color="warning.main">URGENT</Typography>
-              <Typography variant="subtitle1" fontWeight={700}>Low Stock – Italian Sausage (Spicy)</Typography>
-              <Typography variant="body2" color="text.secondary">0.5 kg remaining</Typography>
-              <Box className="flex gap-2 mt-2">
-                <Button variant="outlined">Review Soon</Button>
-                <Button variant="contained">View Item</Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {/* Recent Alerts Summary */}
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" fontWeight={700}>
+              Recent Alerts
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                {history.length} total notification{history.length !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+          </Box>
+          <Grid container spacing={2}>
+            {history.length === 0 && (
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    borderRadius: '12px',
+                    bgcolor: 'rgba(0, 0, 0, 0.02)',
+                  }}
+                >
+                  <Bell size={48} color="#ccc" style={{ marginBottom: '16px' }} />
+                  <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                    No notifications yet
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    All clear! You'll see alerts here when actions are needed.
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
+            {history.slice(0, 4).map((h) => {
+              const isError = h.tone === 'error';
+              return (
+                <Grid item xs={12} md={6} key={h.id}>
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: '12px',
+                      border: '2px solid',
+                      borderColor: isError ? 'rgba(211, 47, 47, 0.2)' : 'rgba(0, 0, 0, 0.08)',
+                      bgcolor: isError ? 'rgba(211, 47, 47, 0.03)' : 'rgba(0, 0, 0, 0.01)',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        borderColor: isError ? 'rgba(211, 47, 47, 0.4)' : 'rgba(0, 0, 0, 0.15)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+                      <StatusChip 
+                        label={isError ? 'Error' : 'Info'} 
+                        color={isError ? 'error' : 'default'}
+                      />
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                        {h.ago || 'Recently'}
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                      {h.msg}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      ID: {h.id}
+                    </Typography>
+                  </Box>
+                </Grid>
+              );
+            })}
+          </Grid>
+          {history.length > 4 && (
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                Showing 4 of {history.length} notifications. See full history below.
+              </Typography>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Notification history table */}
-      <Card>
-        <CardContent>
-          <SectionTitle title="Notification History" />
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Date</TableCell>
-                <TableCell>Time</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Item</TableCell>
-                <TableCell>Details</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {/* Render each history row */}
-              {history.map((h, i) => (
-                <TableRow key={i}>
-                  <TableCell>{h.date}</TableCell>
-                  <TableCell>{h.time}</TableCell>
-                  <TableCell>{h.type}</TableCell>
-                  <TableCell>{h.item}</TableCell>
-                  <TableCell>{h.details}</TableCell>
-                  <TableCell>
-                    {h.status === "Resolved" && <StatusChip label="Resolved" color="success" />}
-                    {h.status === "Acknowledged" && <StatusChip label="Acknowledged" color="error" />}
-                    {h.status === "Dismissed" && <StatusChip label="Dismissed" />}
-                  </TableCell>
+      {/* Notification History Table (live data) */}
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" fontWeight={700}>
+              Complete History
+            </Typography>
+            {history.length > 0 && (
+              <Typography variant="body2" color="text.secondary">
+                {history.length} record{history.length !== 1 ? 's' : ''}
+              </Typography>
+            )}
+          </Box>
+          <Box
+            sx={{
+              border: '1px solid',
+              borderColor: 'rgba(0, 0, 0, 0.08)',
+              borderRadius: '12px',
+              overflow: 'hidden',
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow
+                  sx={{
+                    bgcolor: 'rgba(0, 0, 0, 0.02)',
+                    '& .MuiTableCell-head': {
+                      fontWeight: 700,
+                      fontSize: '0.875rem',
+                      color: 'text.primary',
+                      borderBottom: '2px solid',
+                      borderColor: 'rgba(0, 0, 0, 0.08)',
+                    },
+                  }}
+                >
+                  <TableCell width="80">ID</TableCell>
+                  <TableCell width="120">Type</TableCell>
+                  <TableCell>Message</TableCell>
+                  <TableCell width="140">Time</TableCell>
+                  <TableCell align="right" width="120">Status</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {history.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} sx={{ py: 6, textAlign: 'center' }}>
+                      <Bell size={40} color="#ccc" style={{ marginBottom: '12px' }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                        No notification history available
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        New notifications will appear here
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {history.map((h, index) => (
+                  <TableRow 
+                    key={h.id} 
+                    hover
+                    sx={{
+                      '&:hover': {
+                        bgcolor: 'rgba(0, 0, 0, 0.02)',
+                      },
+                      bgcolor: index % 2 === 0 ? 'transparent' : 'rgba(0, 0, 0, 0.01)',
+                    }}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600} color="text.secondary">
+                        #{h.id}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{
+                          display: 'inline-block',
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: '6px',
+                          bgcolor: h.tone === 'error' ? 'rgba(211, 47, 47, 0.08)' : 'rgba(33, 150, 243, 0.08)',
+                          color: h.tone === 'error' ? '#d32f2f' : '#1976d2',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        {h.tone || 'info'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                        {h.msg}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {h.ago || 'Recently'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <StatusChip 
+                        label={h.tone === 'error' ? 'Action Required' : 'Acknowledged'} 
+                        color={h.tone === 'error' ? 'error' : 'success'}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
         </CardContent>
       </Card>
     </Box>

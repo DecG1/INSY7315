@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Box, Card, CardContent, Typography, Button, FormControl, InputLabel, Select, MenuItem, TextField, Divider, Table, TableHead, TableRow, TableCell, TableBody, Chip } from "@mui/material";
 import { DollarSign, Filter } from "lucide-react";
-import SectionTitle from "../components/SectionTitle";
-import { priceList } from "../utils/mockData";
-import { currency } from "../utils/helpers";
+import SectionTitle from "./SectionTitle.jsx";
+import { priceList } from "./mockData.js";
+import { currency } from "./helpers.js";
 
 const PricingPage = () => {
   const [sel, setSel] = useState(priceList[0]?.name || "Fresh Tomatoes (per kg)");
@@ -17,9 +17,26 @@ const PricingPage = () => {
   };
 
   return (
-    <Box className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card>
-        <CardContent>
+    <Box
+      sx={{
+        p: 3,
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+        gap: 4,
+        animation: 'fadeIn 0.6s ease-in-out',
+        '@keyframes fadeIn': {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+      }}
+    >
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
           <SectionTitle icon={DollarSign} title="Price List" />
           <Box className="flex items-center gap-2 mb-2">
             <TextField size="small" placeholder="Search ingredient" />
@@ -46,8 +63,13 @@ const PricingPage = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="space-y-3">
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
+        <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
           <SectionTitle title="Update Ingredient Price" />
           <FormControl fullWidth>
             <InputLabel>Ingredient</InputLabel>

@@ -12,15 +12,50 @@ import { Card, CardContent, Box, Typography } from "@mui/material";
  * @param {React.Component} icon - Optional icon component
  */
 const MetricCard = ({ title, value, note, tone = "default", icon: Icon }) => (
-  <Card>
-    <CardContent>
+  <Card
+    sx={{
+      borderRadius: '16px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+      transition: 'all 0.3s ease-in-out',
+      '&:hover': {
+        transform: 'translateY(-4px)',
+        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+      },
+    }}
+  >
+    <CardContent sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="overline" color="text.secondary">{title}</Typography>
-          <Typography variant="h5" fontWeight={800}>{value}</Typography>
-          {note && <Typography variant="caption" color="text.secondary">{note}</Typography>}
+        <Box sx={{ flex: 1 }}>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px' }}
+          >
+            {title}
+          </Typography>
+          <Typography variant="h5" fontWeight={700} sx={{ mt: 1, mb: 0.5, color: '#2c3e50' }}>
+            {value}
+          </Typography>
+          {note && (
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+              {note}
+            </Typography>
+          )}
         </Box>
-        {Icon && <Icon size={22} />}
+        {Icon && (
+          <Box
+            sx={{
+              bgcolor: 'rgba(139, 0, 0, 0.08)',
+              p: 1.5,
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon size={24} color="#8b0000" />
+          </Box>
+        )}
       </Box>
     </CardContent>
   </Card>

@@ -7,6 +7,13 @@ export const countRecipes   = () => db.recipes.count();
 export const listNotifications = () =>
   db.notifications.orderBy("id").reverse().toArray();
 
+// Count orders (sales) created today
+export async function countOrdersToday() {
+  const today = new Date().toDateString();
+  const rows = await (db.sales?.toArray?.() ?? []);
+  return rows.filter(r => new Date(r.date).toDateString() === today).length;
+}
+
 // ----- Weekly sales for dashboard chart (optional) -----
 export async function weeklySales() {
   const today = new Date();

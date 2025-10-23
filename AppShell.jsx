@@ -2,16 +2,16 @@
 // AppShell: Main layout and navigation for authenticated users
 import React, { useState } from "react";
 import { Box, Card, CardContent, Typography } from "@mui/material";
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
-import Dashboard from "./pages/Dashboard";
-import InventoryPage from "./pages/InventoryPage";
-import ScannerPage from "./pages/ScannerPage";
-import RecipesPage from "./pages/RecipesPage";
-import PricingPage from "./pages/PricingPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import CalculatorPage from "./pages/CalculatorPage";
-import ReportsPage from "./pages/ReportsPage";
+import Sidebar from "./Sidebar.jsx";
+import Header from "./Header.jsx";
+import Dashboard from "./Dashboard.jsx";
+import InventoryPage from "./InventoryPage.jsx";
+import ScannerPage from "./ScannerPage.jsx";
+import RecipesPage from "./RecipesPage.jsx";
+import PricingPage from "./PricingPage.jsx";
+import NotificationsPage from "./NotificationsPage.jsx";
+import CalculatorPage from "./CalculatorPage.jsx";
+import ReportsPage from "./ReportsPage.jsx";
 
 /**
  * AppShell component
@@ -24,7 +24,7 @@ const AppShell = ({ onLogout }) => {
   const [route, setRoute] = useState("dashboard");
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', background: 'linear-gradient(135deg, #f5f7fa 0%, #e8ebef 100%)' }}>
       {/* Sidebar navigation */}
       <Sidebar current={route} setCurrent={setRoute} />
       {/* Main content area */}

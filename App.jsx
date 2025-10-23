@@ -1,66 +1,65 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate } from "react-router-dom";
-
-import Dashboard from "./Dashboard.jsx";
+import { ThemeProvider, CssBaseline, Box, Typography } from "@mui/material";
+import theme from "./theme.js";
 import LoginPage from "./LoginPage.jsx";
-import ReportsPage from "./ReportsPage.jsx";
-import RecipesPage from "./RecipesPage.jsx";
-import InventoryPage from "./InventoryPage.jsx";
+import AppShell from "./AppShell.jsx";
 import { getSession, clearSession } from "./sessionService.js";
 
-function RequireSession({ children }) {
-  const [loading, setLoading] = useState(true);
+export default function App() {
   const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(false); // Start with false to skip loading
+  const [error, setError] = useState(null);
+
+  console.log("App component rendering, loading:", loading, "session:", session);
 
   useEffect(() => {
+    console.log("useEffect running - checking session...");
     (async () => {
-      setSession(await getSession());
-      setLoading(false);
+      try {
+        const s = await getSession();
+        console.log("Session retrieved:", s);
+        setSession(s);
+      } catch (err) {
+        console.error("Error getting session:", err);
+        // Don't show error, just continue without session
+        setSession(null);
+      }
     })();
   }, []);
 
-  if (loading) return null; // or a spinner
-  if (!session) return <Navigate to="/login" replace />;
-  return children;
-}
-
-function Header() {
-  const [session, setSession] = useState(null);
-  const navigate = useNavigate();
-  useEffect(() => { getSession().then(setSession); }, []);
-  const doLogout = async () => {
-    await clearSession();
-    navigate("/login", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await clearSession();
+      setSession(null);
+    } catch (err) {
+      console.error("Error clearing session:", err);
+      setSession(null);
+    }
   };
-  return (
-    <div style={{ display:"flex", gap:12, padding:12, borderBottom:"1px solid #eee" }}>
-      <Link to="/">Dashboard</Link>
-      <Link to="/inventory">Inventory</Link>
-      <Link to="/recipes">Recipes</Link>
-      <Link to="/reports">Reports</Link>
-      <div style={{ marginLeft:"auto" }}>
-        {session && (
-          <>
-            <span style={{ marginRight: 8 }}>{session.email} ({session.role})</span>
-            <button onClick={doLogout}>Logout</button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
 
-export default function App() {
+  const handleLoginSuccess = () => {
+    console.log("Login successful, reloading session...");
+    // Re-fetch session after login
+    (async () => {
+      try {
+        const s = await getSession();
+        console.log("Session after login:", s);
+        setSession(s);
+      } catch (err) {
+        console.error("Error getting session after login:", err);
+      }
+    })();
+  };
+
+  // Always render the app - if there's an issue it will show in console
   return (
-    <Router>
-      <Header />
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<RequireSession><Dashboard /></RequireSession>} />
-        <Route path="/inventory" element={<RequireSession><InventoryPage /></RequireSession>} />
-        <Route path="/recipes" element={<RequireSession><RecipesPage /></RequireSession>} />
-        <Route path="/reports" element={<RequireSession><ReportsPage /></RequireSession>} />
-      </Routes>
-    </Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      {!session ? (
+        <LoginPage onLoginSuccess={handleLoginSuccess} />
+      ) : (
+        <AppShell onLogout={handleLogout} />
+      )}
+    </ThemeProvider>
   );
 }

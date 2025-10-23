@@ -167,10 +167,20 @@ export default function RecipesPage() {
         gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
         gap: 3,
         p: 3,
+        animation: 'fadeIn 0.6s ease-in-out',
+        '@keyframes fadeIn': {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
       }}
     >
       {/* Recipe list table */}
-      <Card>
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
         <CardContent sx={{ p: 3 }}>
           <SectionTitle icon={ChefHat} title="Recipe Overview" />
           <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
@@ -232,7 +242,12 @@ export default function RecipesPage() {
       </Card>
 
       {/* Add new recipe form */}
-      <Card>
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
         <CardContent sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           <SectionTitle title="Add New Recipe" />
           <TextField

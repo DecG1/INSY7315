@@ -46,18 +46,69 @@ export default function InventoryPage() {
   }
 
   return (
-    <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+    <Box
+      sx={{
+        p: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 3,
+        animation: 'fadeIn 0.6s ease-in-out',
+        '@keyframes fadeIn': {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+      }}
+    >
       <SectionTitle
         icon={Boxes}
         title="Inventory"
         action={
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="contained" startIcon={<PlusCircle size={16} />} onClick={() => setOpenAdd(true)}>
+            <Button
+              variant="contained"
+              startIcon={<PlusCircle size={16} />}
+              onClick={() => setOpenAdd(true)}
+              sx={{
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+              }}
+            >
               Add New Item
             </Button>
-            <Button variant="outlined" startIcon={<QrCode size={16} />}>Scan New Item</Button>
-            <Button variant="outlined">Export Inventory</Button>
-            <Button variant="text" color="error">View Depleted Stock</Button>
+            <Button
+              variant="outlined"
+              startIcon={<QrCode size={16} />}
+              sx={{
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 600,
+              }}
+            >
+              Scan New Item
+            </Button>
+            <Button
+              variant="outlined"
+              sx={{
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 600,
+              }}
+            >
+              Export Inventory
+            </Button>
+            <Button
+              variant="text"
+              color="error"
+              sx={{
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 600,
+              }}
+            >
+              View Depleted Stock
+            </Button>
           </Box>
         }
       />
@@ -68,18 +119,39 @@ export default function InventoryPage() {
           placeholder="Search ingredients…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '12px',
+            },
+            width: '400px',
+          }}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search size={16} />
+                <Search size={18} />
               </InputAdornment>
             ),
           }}
         />
-        <Button variant="outlined" startIcon={<Filter size={16} />}>Filters</Button>
+        <Button
+          variant="outlined"
+          startIcon={<Filter size={16} />}
+          sx={{
+            borderRadius: '12px',
+            textTransform: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Filters
+        </Button>
       </Box>
 
-      <Card>
+      <Card
+        sx={{
+          borderRadius: '16px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        }}
+      >
         <Table>
           <TableHead>
             <TableRow>

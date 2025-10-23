@@ -22,7 +22,7 @@ import { currency } from "./helpers.js";
 
 import { listInventory } from "./inventoryService.js";
 import { listRecipes } from "./recipesService.js";
-import { weeklySales } from "./analyticsService.js";
+import { weeklySales, addSale } from "./analyticsService.js";
 
 import {
   ResponsiveContainer,
@@ -38,6 +38,10 @@ export default function ReportsPage() {
   const [inv, setInv] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [week, setWeek] = useState([]); // [{day, sales, costs}]
+  // quick add sale form
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saleAmount, setSaleAmount] = useState("");
+  const [saleCost, setSaleCost] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -51,6 +55,19 @@ export default function ReportsPage() {
       setWeek(w);
     })();
   }, []);
+
+  async function handleAddSale() {
+    if (!saleAmount) return;
+    await addSale({
+      date: new Date(saleDate).toISOString(),
+      amount: Number(saleAmount),
+      cost: Number(saleCost || 0),
+    });
+    const w = await weeklySales();
+    setWeek(w);
+    setSaleAmount("");
+    setSaleCost("");
+  }
 
   // derived metrics
   const inventoryValue = useMemo(() => {
@@ -78,11 +95,23 @@ export default function ReportsPage() {
   }, [recipes]);
 
   return (
-    <Box sx={{ p: 3, display: "grid", gap: 3 }}>
+    <Box
+      sx={{
+        p: 3,
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        animation: 'fadeIn 0.6s ease-in-out',
+        '@keyframes fadeIn': {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+      }}
+    >
       <SectionTitle title="Reports & Analytics" />
 
-      {/* Date range controls (UI only for now) */}
-      <Box sx={{ display: "flex", gap: 2, alignItems: "flex-end" }}>
+      {/* Date range controls (UI only for now) + quick add sale */}
+      <Box sx={{ display: "flex", gap: 2, alignItems: "flex-end", flexWrap: 'wrap' }}>
         <TextField
           type="month"
           label="Start"
@@ -98,6 +127,14 @@ export default function ReportsPage() {
         <Button variant="contained">Generate Report</Button>
         <Button variant="outlined">Export PDF</Button>
         <Button variant="outlined">Export CSV</Button>
+
+        {/* Quick Add Sale */}
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>
+          <TextField type="date" label="Sale Date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <TextField type="number" label="Amount (ZAR)" value={saleAmount} onChange={(e) => setSaleAmount(e.target.value)} inputProps={{ min: 0, step: '0.01' }} />
+          <TextField type="number" label="Cost (ZAR)" value={saleCost} onChange={(e) => setSaleCost(e.target.value)} inputProps={{ min: 0, step: '0.01' }} />
+          <Button variant="outlined" color="error" onClick={handleAddSale} disabled={!saleAmount}>Add Sale</Button>
+        </Box>
       </Box>
 
       {/* Metric cards (computed from DB) */}
