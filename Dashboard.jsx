@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button } from "@mui/material";
+import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import {
   BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw
 } from "lucide-react";
@@ -10,7 +10,7 @@ import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { countInventory, countRecipes, weeklySales, countOrdersToday } from "./analyticsService.js";
+import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday } from "./analyticsService.js";
 
 export default function Dashboard() {
   const [invCount, setInvCount] = useState(0);
@@ -18,26 +18,67 @@ export default function Dashboard() {
   const [expiringSoon, setExpiringSoon] = useState(0); // optional calc
   const [ordersToday, setOrdersToday] = useState(0);
   const [revenueToday, setRevenueToday] = useState(0);
-  const [week, setWeek] = useState([]);                 // chart data from DB
+  const [chartData, setChartData] = useState([]);                 // chart data from DB
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [period, setPeriod] = useState('weekly'); // Current period: 'weekly', 'monthly', or 'yearly'
+  
+  /**
+   * Fetch sales data based on selected period
+   * Routes to appropriate analytics function (weeklySales, monthlySales, or yearlySales)
+   * @param {string} selectedPeriod - The period to fetch data for
+   * @returns {Promise<Array>} Sales data for the selected period
+   */
+  const fetchSalesData = async (selectedPeriod) => {
+    switch(selectedPeriod) {
+      case 'monthly':
+        return await monthlySales();
+      case 'yearly':
+        return await yearlySales();
+      case 'weekly':
+      default:
+        return await weeklySales();
+    }
+  };
+  
+  /**
+   * Fetch all dashboard data including metrics and chart data
+   * Called on mount and when period changes or user clicks refresh
+   */
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [ic, rc, ws, ot] = await Promise.all([
+      const [ic, rc, salesData, ot] = await Promise.all([
         countInventory(),
         countRecipes(),
-        weeklySales(),
+        fetchSalesData(period), // Fetch sales for current period
         countOrdersToday(),
       ]);
       setInvCount(ic);
       setRecipeCount(rc);
 
-      setWeek(ws);
+      setChartData(salesData);
       setOrdersToday(ot);
-      const todayBucket = ws.find(
-        (d) => d.day === ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()]
-      );
-      setRevenueToday(todayBucket ? todayBucket.sales : 0);
+      
+      // Calculate today's revenue based on period context
+      // For weekly: find today's day of week (Sun-Sat)
+      // For monthly: find today's day of month (1-31)
+      // For yearly: find current month's total
+      if (period === 'weekly') {
+        const todayBucket = salesData.find(
+          (d) => d.day === ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()]
+        );
+        setRevenueToday(todayBucket ? todayBucket.sales : 0);
+      } else if (period === 'monthly') {
+        const today = new Date().getDate();
+        const todayBucket = salesData.find(d => d.day === String(today));
+        setRevenueToday(todayBucket ? todayBucket.sales : 0);
+      } else {
+        // For yearly, show today's revenue from current month
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const currentMonth = monthNames[new Date().getMonth()];
+        const todayBucket = salesData.find(d => d.day === currentMonth);
+        setRevenueToday(todayBucket ? todayBucket.sales : 0);
+      }
 
       setExpiringSoon(0);
     } finally {
@@ -45,9 +86,22 @@ export default function Dashboard() {
     }
   };
 
+  // Re-fetch data when component mounts or when period changes
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [period]); // Re-fetch when period changes
+  
+  /**
+   * Handle period toggle button change
+   * Updates the period state which triggers data re-fetch via useEffect
+   * @param {Event} event - Click event
+   * @param {string} newPeriod - New period selection ('weekly', 'monthly', or 'yearly')
+   */
+  const handlePeriodChange = (event, newPeriod) => {
+    if (newPeriod !== null) {
+      setPeriod(newPeriod);
+    }
+  };
 
   return (
     <Box
@@ -79,7 +133,7 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      {/* Weekly financial overview chart */}
+      {/* Financial overview chart with period selector */}
       <Card
         sx={{
           borderRadius: '16px',
@@ -89,26 +143,51 @@ export default function Dashboard() {
         <CardContent sx={{ p: 3 }}>
           <SectionTitle 
             icon={BarChart3} 
-            title="Weekly Financial Overview"
+            title="Financial Overview"
             action={
-              <HintTooltip title="Refresh all dashboard metrics and charts to show the latest data from saved dockets and sales">
-                <Button 
-                  variant="outlined" 
-                  size="small" 
-                  startIcon={<RefreshCw size={14} />} 
-                  onClick={fetchData}
-                  disabled={isRefreshing}
-                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
-                >
-                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
-                </Button>
-              </HintTooltip>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                {/* Period selector toggle buttons */}
+                <HintTooltip title="Switch between weekly, monthly, or yearly revenue view">
+                  <ToggleButtonGroup
+                    value={period}
+                    exclusive
+                    onChange={handlePeriodChange}
+                    size="small"
+                    sx={{
+                      '& .MuiToggleButton-root': {
+                        borderRadius: '8px',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        px: 2,
+                      },
+                    }}
+                  >
+                    <ToggleButton value="weekly">Weekly</ToggleButton>
+                    <ToggleButton value="monthly">Monthly</ToggleButton>
+                    <ToggleButton value="yearly">Yearly</ToggleButton>
+                  </ToggleButtonGroup>
+                </HintTooltip>
+                
+                {/* Refresh button */}
+                <HintTooltip title="Refresh all dashboard metrics and charts to show the latest data from saved dockets and sales">
+                  <Button 
+                    variant="outlined" 
+                    size="small" 
+                    startIcon={<RefreshCw size={14} />} 
+                    onClick={fetchData}
+                    disabled={isRefreshing}
+                    sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                  >
+                    {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                  </Button>
+                </HintTooltip>
+              </Box>
             }
           />
-          {week.length > 0 ? (
+          {chartData.length > 0 ? (
             <Box sx={{ height: 256 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={week}>
+                <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="day" />
                   <YAxis />

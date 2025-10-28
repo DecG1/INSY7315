@@ -5,10 +5,18 @@ import SectionTitle from "./SectionTitle.jsx";
 import { listRecipes } from "./recipesService.js";
 import { currency } from "./helpers.js";
 
+/**
+ * CalculatorPage
+ * Allows the user to select a recipe and enter a quantity to estimate total cost.
+ * Note on quantity input: We intentionally keep the input value as a string so it can be empty
+ * (no default 0 displayed). We only coerce to a number when performing calculations.
+ */
 const CalculatorPage = () => {
   const [recipeRows, setRecipeRows] = useState([]);
   const [sel, setSel] = useState("");
-  const [qty, setQty] = useState(1);
+  // Quantity is stored as a string so the TextField can be truly empty (no auto 0).
+  // This improves UX: users only see exactly what they type. Numeric coercion happens at compute time.
+  const [qty, setQty] = useState("");
 
   React.useEffect(() => {
     (async () => {
@@ -19,6 +27,11 @@ const CalculatorPage = () => {
   }, []);
 
   const base = useMemo(() => recipeRows.find(r => r.name === sel)?.cost || 0, [recipeRows, sel]);
+  /**
+   * Compute total cost.
+   * - qty remains a string in state; here we convert it for arithmetic.
+   * - If qty is "" (empty), treat as 0 for math, but do not display 0 in the input.
+   */
   const total = (base * Number(qty || 0)).toFixed(2);
 
   return (
@@ -43,7 +56,24 @@ const CalculatorPage = () => {
             {recipeRows.map((r) => <MenuItem key={r.id ?? r.name} value={r.name}>{r.name}</MenuItem>)}
           </Select>
         </FormControl>
-        <TextField label="Quantity" type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} inputProps={{ min: 0 }} />
+        {/* Quantity input: keep raw string so it can be empty; type=number still provides numeric keypad & validation */}
+        <TextField
+          label="Quantity"
+          type="number"
+          value={qty}
+          onChange={(e) => {
+            const v = e.target.value;
+            // Allow empty input by storing ""; otherwise store raw string. We don't convert here
+            // to avoid showing 0 when the user clears the field.
+            if (v === "") {
+              setQty("");
+            } else {
+              setQty(v);
+            }
+          }}
+          inputProps={{ min: 0 }}
+          placeholder="Enter quantity"
+        />
         <Button variant="contained" color="error" disabled={recipeRows.length === 0}>Calculate</Button>
       </Box>
       <Card
