@@ -4,6 +4,8 @@ import theme from "./theme.js";
 import LoginPage from "./LoginPage.jsx";
 import AppShell from "./AppShell.jsx";
 import { getSession, clearSession } from "./sessionService.js";
+import { HintsProvider } from "./HintsContext.jsx";
+import { ThemeProvider as CustomThemeProvider } from "./ThemeContext.jsx"; // Custom theme provider with dark mode support
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -53,13 +55,17 @@ export default function App() {
 
   // Always render the app - if there's an issue it will show in console
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      {!session ? (
-        <LoginPage onLoginSuccess={handleLoginSuccess} />
-      ) : (
-        <AppShell onLogout={handleLogout} />
-      )}
-    </ThemeProvider>
+    // Wrap app with custom theme provider for dark mode support
+    <CustomThemeProvider>
+      <CssBaseline /> {/* MUI baseline CSS reset */}
+      {/* Provide hints context to all children */}
+      <HintsProvider>
+        {!session ? (
+          <LoginPage onLoginSuccess={handleLoginSuccess} />
+        ) : (
+          <AppShell onLogout={handleLogout} />
+        )}
+      </HintsProvider>
+    </CustomThemeProvider>
   );
 }

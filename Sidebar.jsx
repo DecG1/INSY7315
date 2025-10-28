@@ -1,10 +1,12 @@
 import React from "react";
-import { Box, Typography, Divider, Button } from "@mui/material";
+import { Box, Typography, Divider, Button, useTheme } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed } from "lucide-react";
+import HintTooltip from "./HintTooltip.jsx"; // Import tooltip for navigation hints
 
 const brandRed = "#8b0000";
 
+// Styled button component for sidebar navigation items
 const SidebarButton = styled(Button)(({ theme, selected }) => ({
   justifyContent: "flex-start",
   color: selected ? "#fff" : theme.palette.text.primary,
@@ -23,19 +25,32 @@ const SidebarButton = styled(Button)(({ theme, selected }) => ({
   },
 }));
 
+/**
+ * Sidebar component
+ * Displays navigation menu with icons and labels for all app sections
+ * Each menu item includes a hint tooltip when hints are enabled
+ * 
+ * @param {string} current - Currently active route key
+ * @param {function} setCurrent - Function to change active route
+ */
 const Sidebar = ({ current, setCurrent }) => {
+  // Navigation items with labels, icons, and hint text
   const items = [
-    { key: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { key: "inventory", label: "Inventory", icon: Boxes },
-    { key: "scanner", label: "Docket Scanner", icon: QrCode },
-    { key: "recipes", label: "Recipes", icon: ChefHat },
-    { key: "pricing", label: "Ingredient Pricing", icon: DollarSign },
-    { key: "notifications", label: "Notifications", icon: Bell },
-    { key: "calculator", label: "Calculator", icon: FileSpreadsheet },
-    { key: "reports", label: "Reports", icon: BarChart3 },
-    { key: "loyalty", label: "Loyalty", icon: Users },
-    { key: "settings", label: "Settings", icon: Filter },
+    { key: "dashboard", label: "Dashboard", icon: BarChart3, hint: "View key metrics, orders today, and weekly financial overview" },
+    { key: "inventory", label: "Inventory", icon: Boxes, hint: "Manage stock items, quantities, and expiry dates" },
+    { key: "scanner", label: "Docket Scanner", icon: QrCode, hint: "Enter customer orders manually and calculate gratuity" },
+    { key: "recipes", label: "Recipes", icon: ChefHat, hint: "Manage recipes and track ingredient usage" },
+    { key: "pricing", label: "Ingredient Pricing", icon: DollarSign, hint: "Set and update ingredient costs for accurate pricing" },
+    { key: "notifications", label: "Notifications", icon: Bell, hint: "View alerts for low stock and expiring items" },
+    { key: "calculator", label: "Calculator", icon: FileSpreadsheet, hint: "Calculate recipe costs based on quantity" },
+    { key: "reports", label: "Reports", icon: BarChart3, hint: "View weekly sales analytics and add manual sales entries" },
+    { key: "loyalty", label: "Loyalty", icon: Users, hint: "Customer loyalty program (coming soon)" },
+    { key: "settings", label: "Settings", icon: Filter, hint: "Configure app preferences, hints, and notifications" },
   ];
+  
+  // Access theme to adapt sidebar styling for dark mode
+  const theme = useTheme();
+  
   return (
     <Box
       sx={{
@@ -44,10 +59,15 @@ const Sidebar = ({ current, setCurrent }) => {
         p: 3,
         display: 'flex',
         flexDirection: 'column',
+        // Border color adapts to theme mode
         borderRight: 1,
-        borderColor: 'rgba(0, 0, 0, 0.08)',
-        bgcolor: '#ffffff',
-        boxShadow: '2px 0 12px rgba(0, 0, 0, 0.04)',
+        borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+        // Background uses theme palette for automatic dark/light switching
+        bgcolor: theme.palette.background.paper,
+        // Shadow strength adjusts for better visibility in dark mode
+        boxShadow: theme.palette.mode === 'dark' 
+          ? '2px 0 12px rgba(0, 0, 0, 0.5)' 
+          : '2px 0 12px rgba(0, 0, 0, 0.04)',
         gap: 2,
       }}
     >
@@ -70,11 +90,15 @@ const Sidebar = ({ current, setCurrent }) => {
           Restaurant
         </Typography>
       </Box>
+      {/* Render navigation items with hint tooltips */}
       {items.map((it) => (
-        <SidebarButton key={it.key} selected={current === it.key ? 1 : 0} onClick={() => setCurrent(it.key)} startIcon={<it.icon size={18} />}>{it.label}</SidebarButton>
+        <HintTooltip key={it.key} title={it.hint} placement="right">
+          <SidebarButton selected={current === it.key ? 1 : 0} onClick={() => setCurrent(it.key)} startIcon={<it.icon size={18} />}>{it.label}</SidebarButton>
+        </HintTooltip>
       ))}
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ my: 2 }} />
+      {/* App version and currency info */}
       <Typography variant="caption" color="text.secondary">Ristorante Manager v1.0 • ZAR</Typography>
     </Box>
   );

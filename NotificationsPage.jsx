@@ -8,6 +8,7 @@ import StatusChip from "./StatusChip.jsx";
 import { brandRed } from "./helpers.js";
 import { listNotifications } from "./analyticsService.js";
 import { db } from "./db.js";
+import HintTooltip from "./HintTooltip.jsx";
 
 /**
  * NotificationsPage
@@ -60,8 +61,12 @@ const NotificationsPage = () => {
         title="Notifications & Alerts"
         action={
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" onClick={refresh} disabled={loading}>Refresh</Button>
-            <Button variant="text" color="error" onClick={clearAll} disabled={loading}>Clear All</Button>
+            <HintTooltip title="Reload all notifications from the database to see the latest alerts">
+              <Button variant="outlined" onClick={refresh} disabled={loading}>Refresh</Button>
+            </HintTooltip>
+            <HintTooltip title="Delete all notifications from history. This cannot be undone.">
+              <Button variant="text" color="error" onClick={clearAll} disabled={loading}>Clear All</Button>
+            </HintTooltip>
           </Box>
         }
       />

@@ -4,6 +4,7 @@ import { Receipt, Plus, Trash2, Save } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
 import { currency } from "./helpers.js";
 import { addSale } from "./analyticsService.js";
+import HintTooltip from "./HintTooltip.jsx";
 
 const ScannerPage = () => {
   // Docket items organized by category
@@ -151,32 +152,34 @@ const ScannerPage = () => {
             </Box>
           </Box>
           
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<Plus size={18} />}
-            onClick={() => addItem(category)}
-            sx={{
-              mb: 3,
-              py: 1.5,
-              borderRadius: '12px',
-              textTransform: 'none',
-              fontWeight: 700,
-              fontSize: '0.95rem',
-              bgcolor: style.color,
-              color: 'white',
-              boxShadow: `0 4px 12px ${style.color}40`,
-              '&:hover': {
+          <HintTooltip title={`Add a new ${title.toLowerCase()} item to this docket. Enter the item name and price.`}>
+            <Button
+              variant="contained"
+              fullWidth
+              startIcon={<Plus size={18} />}
+              onClick={() => addItem(category)}
+              sx={{
+                mb: 3,
+                py: 1.5,
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: '0.95rem',
                 bgcolor: style.color,
-                filter: 'brightness(0.9)',
-                boxShadow: `0 6px 20px ${style.color}60`,
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s ease-in-out',
-            }}
-          >
-            Add Item
-          </Button>
+                color: 'white',
+                boxShadow: `0 4px 12px ${style.color}40`,
+                '&:hover': {
+                  bgcolor: style.color,
+                  filter: 'brightness(0.9)',
+                  boxShadow: `0 6px 20px ${style.color}60`,
+                  transform: 'translateY(-1px)',
+                },
+                transition: 'all 0.2s ease-in-out',
+              }}
+            >
+              Add Item
+            </Button>
+          </HintTooltip>
           
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minHeight: '120px' }}>
             {items.length === 0 && (
@@ -336,31 +339,35 @@ const ScannerPage = () => {
         title="Manual Docket Entry"
         action={
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={clearDocket}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Clear All
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Save size={16} />}
-              onClick={saveDocket}
-              disabled={orderTotal === 0}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-                color: 'white',
-              }}
-            >
-              Save Docket
-            </Button>
+            <HintTooltip title="Clear all items and reset the docket to start fresh">
+              <Button
+                variant="outlined"
+                onClick={clearDocket}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Clear All
+              </Button>
+            </HintTooltip>
+            <HintTooltip title="Save this docket and add it to sales records. The order will appear in today's orders count and financial reports">
+              <Button
+                variant="contained"
+                startIcon={<Save size={16} />}
+                onClick={saveDocket}
+                disabled={orderTotal === 0}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  color: 'white',
+                }}
+              >
+                Save Docket
+              </Button>
+            </HintTooltip>
           </Box>
         }
       />

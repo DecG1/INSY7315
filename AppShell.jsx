@@ -1,7 +1,7 @@
 
 // AppShell: Main layout and navigation for authenticated users
 import React, { useState } from "react";
-import { Box, Card, CardContent, Typography } from "@mui/material";
+import { Box, Card, CardContent, Typography, useTheme } from "@mui/material";
 import Sidebar from "./Sidebar.jsx";
 import Header from "./Header.jsx";
 import Dashboard from "./Dashboard.jsx";
@@ -12,6 +12,7 @@ import PricingPage from "./PricingPage.jsx";
 import NotificationsPage from "./NotificationsPage.jsx";
 import CalculatorPage from "./CalculatorPage.jsx";
 import ReportsPage from "./ReportsPage.jsx";
+import SettingsPage from "./SettingsPage.jsx";
 
 /**
  * AppShell component
@@ -22,9 +23,18 @@ import ReportsPage from "./ReportsPage.jsx";
 const AppShell = ({ onLogout }) => {
   // Current route state (string key)
   const [route, setRoute] = useState("dashboard");
+  // Access theme to detect dark mode and style accordingly
+  const theme = useTheme();
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', background: 'linear-gradient(135deg, #f5f7fa 0%, #e8ebef 100%)' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      // Dynamic background gradient based on theme mode
+      background: theme.palette.mode === 'dark' 
+        ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' // Dark mode gradient
+        : 'linear-gradient(135deg, #f5f7fa 0%, #e8ebef 100%)' // Light mode gradient
+    }}>
       {/* Sidebar navigation */}
       <Sidebar current={route} setCurrent={setRoute} />
       {/* Main content area */}
@@ -41,8 +51,9 @@ const AppShell = ({ onLogout }) => {
           {route === "notifications" && <NotificationsPage />}
           {route === "calculator" && <CalculatorPage />}
           {route === "reports" && <ReportsPage />}
+          {route === "settings" && <SettingsPage />}
           {/* Fallback for unknown routes */}
-          {route !== "dashboard" && route !== "inventory" && route !== "scanner" && route !== "recipes" && route !== "pricing" && route !== "notifications" && route !== "calculator" && route !== "reports" && (
+          {route !== "dashboard" && route !== "inventory" && route !== "scanner" && route !== "recipes" && route !== "pricing" && route !== "notifications" && route !== "calculator" && route !== "reports" && route !== "settings" && (
             <Box>
               <Card>
                 <CardContent>

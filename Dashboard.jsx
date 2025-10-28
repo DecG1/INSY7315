@@ -7,6 +7,7 @@ import {
 import MetricCard from "./MetricCard.jsx";
 import SectionTitle from "./SectionTitle.jsx";
 import { currency } from "./helpers.js";
+import HintTooltip from "./HintTooltip.jsx";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { countInventory, countRecipes, weeklySales, countOrdersToday } from "./analyticsService.js";
@@ -90,16 +91,18 @@ export default function Dashboard() {
             icon={BarChart3} 
             title="Weekly Financial Overview"
             action={
-              <Button 
-                variant="outlined" 
-                size="small" 
-                startIcon={<RefreshCw size={14} />} 
-                onClick={fetchData}
-                disabled={isRefreshing}
-                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
-              >
-                {isRefreshing ? 'Refreshing…' : 'Refresh'}
-              </Button>
+              <HintTooltip title="Refresh all dashboard metrics and charts to show the latest data from saved dockets and sales">
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  startIcon={<RefreshCw size={14} />} 
+                  onClick={fetchData}
+                  disabled={isRefreshing}
+                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                >
+                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                </Button>
+              </HintTooltip>
             }
           />
           {week.length > 0 ? (

@@ -23,6 +23,7 @@ import { currency } from "./helpers.js";
 import { listInventory } from "./inventoryService.js";
 import { listRecipes } from "./recipesService.js";
 import { weeklySales, addSale } from "./analyticsService.js";
+import HintTooltip from "./HintTooltip.jsx";
 
 import {
   ResponsiveContainer,
@@ -133,7 +134,9 @@ export default function ReportsPage() {
           <TextField type="date" label="Sale Date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField type="number" label="Amount (ZAR)" value={saleAmount} onChange={(e) => setSaleAmount(e.target.value)} inputProps={{ min: 0, step: '0.01' }} />
           <TextField type="number" label="Cost (ZAR)" value={saleCost} onChange={(e) => setSaleCost(e.target.value)} inputProps={{ min: 0, step: '0.01' }} />
-          <Button variant="outlined" color="error" onClick={handleAddSale} disabled={!saleAmount}>Add Sale</Button>
+          <HintTooltip title="Add a manual sale entry to the database. This will update the weekly chart and dashboard metrics.">
+            <Button variant="outlined" color="error" onClick={handleAddSale} disabled={!saleAmount}>Add Sale</Button>
+          </HintTooltip>
         </Box>
       </Box>
 
