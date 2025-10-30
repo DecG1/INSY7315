@@ -30,6 +30,10 @@ import {
   LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip,
 } from "recharts";
 
+// PDF generation libraries
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+
 export default function ReportsPage() {
   // date range inputs (not wired to filters yet)
   const [start, setStart] = useState("");
@@ -44,6 +48,10 @@ export default function ReportsPage() {
   const [saleAmount, setSaleAmount] = useState("");
   const [saleCost, setSaleCost] = useState("");
 
+  // Report generation state
+  const [reportGenerated, setReportGenerated] = useState(false);
+  const [reportData, setReportData] = useState(null);
+
   useEffect(() => {
     (async () => {
       const [i, r, w] = await Promise.all([
@@ -57,6 +65,10 @@ export default function ReportsPage() {
     })();
   }, []);
 
+  /**
+   * Handle adding a manual sale entry
+   * Adds sale to database and refreshes weekly sales chart
+   */
   async function handleAddSale() {
     if (!saleAmount) return;
     await addSale({
@@ -69,6 +81,269 @@ export default function ReportsPage() {
     setSaleAmount("");
     setSaleCost("");
   }
+
+  /**
+   * Generate comprehensive report
+   * Aggregates all data (inventory, recipes, sales) into a structured report
+   * This prepares the data for display or export to PDF/CSV
+   */
+  const handleGenerateReport = () => {
+    // Calculate report metrics
+    const totalInventoryValue = inv.reduce((sum, it) => {
+      const qty = Number(it.qty || 0);
+      const unitCost = Number(it.cost || 0);
+      return sum + qty * unitCost;
+    }, 0);
+
+    const totalWeeklySales = week.reduce((sum, day) => sum + Number(day.sales || 0), 0);
+    const totalWeeklyCosts = week.reduce((sum, day) => sum + Number(day.costs || 0), 0);
+    const weeklyProfit = totalWeeklySales - totalWeeklyCosts;
+
+    // Count items expiring soon (within 7 days)
+    const now = new Date();
+    const expiringSoonCount = inv.filter(item => {
+      if (!item?.expiry) return false;
+      const d = new Date(item.expiry);
+      if (isNaN(d.getTime())) return false;
+      const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+      return days <= 7 && days >= 0;
+    }).length;
+
+    // Low stock items (items below reorder threshold)
+    const lowStockCount = inv.filter(item => {
+      const qty = Number(item.qty || 0);
+      const reorder = Number(item.reorder || 0);
+      return reorder > 0 && qty <= reorder;
+    }).length;
+
+    // Package report data
+    const report = {
+      generatedAt: new Date().toLocaleString("en-ZA"),
+      dateRange: start && end ? `${start} to ${end}` : "All Time",
+      summary: {
+        totalRecipes: recipes.length,
+        totalInventoryItems: inv.length,
+        inventoryValue: totalInventoryValue,
+        weeklyEntries: week.length,
+        totalWeeklySales,
+        totalWeeklyCosts,
+        weeklyProfit,
+        expiringSoonCount,
+        lowStockCount,
+      },
+      inventory: inv,
+      recipes: recipes,
+      weeklySales: week,
+      dishProfitability: dishProfitRows,
+    };
+
+    setReportData(report);
+    setReportGenerated(true);
+    
+    // Show success message
+    alert(`Report generated successfully!\n\nTotal Sales: ${currency(totalWeeklySales)}\nWeekly Profit: ${currency(weeklyProfit)}\nInventory Items: ${inv.length}`);
+  };
+
+  /**
+   * Export report data to CSV format
+   * Creates downloadable CSV file with sales and inventory data
+   * CSV is human-readable and can be opened in Excel or Google Sheets
+   */
+  const handleExportCSV = () => {
+    if (!reportGenerated || !reportData) {
+      alert("Please generate a report first before exporting.");
+      return;
+    }
+
+    // Prepare CSV content with multiple sections
+    let csvContent = "INSY7315 - Business Report\n";
+    csvContent += `Generated: ${reportData.generatedAt}\n`;
+    csvContent += `Date Range: ${reportData.dateRange}\n\n`;
+
+    // Summary section
+    csvContent += "SUMMARY METRICS\n";
+    csvContent += "Metric,Value\n";
+    csvContent += `Total Recipes,${reportData.summary.totalRecipes}\n`;
+    csvContent += `Total Inventory Items,${reportData.summary.totalInventoryItems}\n`;
+    csvContent += `Inventory Value,${reportData.summary.inventoryValue.toFixed(2)}\n`;
+    csvContent += `Weekly Sales,${reportData.summary.totalWeeklySales.toFixed(2)}\n`;
+    csvContent += `Weekly Costs,${reportData.summary.totalWeeklyCosts.toFixed(2)}\n`;
+    csvContent += `Weekly Profit,${reportData.summary.weeklyProfit.toFixed(2)}\n`;
+    csvContent += `Items Expiring Soon,${reportData.summary.expiringSoonCount}\n`;
+    csvContent += `Low Stock Items,${reportData.summary.lowStockCount}\n\n`;
+
+    // Weekly sales section
+    csvContent += "WEEKLY SALES\n";
+    csvContent += "Day,Sales (ZAR),Costs (ZAR),Profit (ZAR)\n";
+    reportData.weeklySales.forEach(day => {
+      const profit = (Number(day.sales || 0) - Number(day.costs || 0)).toFixed(2);
+      csvContent += `${day.day},${day.sales.toFixed(2)},${day.costs.toFixed(2)},${profit}\n`;
+    });
+    csvContent += "\n";
+
+    // Inventory section
+    csvContent += "INVENTORY\n";
+    csvContent += "Name,Quantity,Unit,Expiry,Cost (ZAR)\n";
+    reportData.inventory.forEach(item => {
+      csvContent += `"${item.name}",${item.qty},${item.unit},${item.expiry || 'N/A'},${(item.cost || 0).toFixed(2)}\n`;
+    });
+    csvContent += "\n";
+
+    // Recipes section
+    csvContent += "RECIPES\n";
+    csvContent += "Name,Type,Cost (ZAR)\n";
+    reportData.recipes.forEach(recipe => {
+      csvContent += `"${recipe.name}",${recipe.type || 'N/A'},${(recipe.cost || 0).toFixed(2)}\n`;
+    });
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `INSY7315_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  /**
+   * Export report data to PDF format
+   * Creates professionally formatted PDF with tables and summary metrics
+   * Uses jsPDF and jspdf-autotable for enhanced table rendering
+   */
+  const handleExportPDF = () => {
+    if (!reportGenerated || !reportData) {
+      alert("Please generate a report first before exporting.");
+      return;
+    }
+
+    // Initialize PDF document (A4 size, portrait orientation)
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20; // Current Y position for content placement
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont(undefined, "bold");
+    doc.text("INSY7315 - Business Report", pageWidth / 2, yPos, { align: "center" });
+    
+    yPos += 10;
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(`Generated: ${reportData.generatedAt}`, pageWidth / 2, yPos, { align: "center" });
+    doc.text(`Date Range: ${reportData.dateRange}`, pageWidth / 2, yPos + 5, { align: "center" });
+    
+    yPos += 20;
+
+    // Summary Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("Summary Metrics", 14, yPos);
+    yPos += 5;
+
+    // Summary table
+    doc.autoTable({
+      startY: yPos,
+      head: [["Metric", "Value"]],
+      body: [
+        ["Total Recipes", reportData.summary.totalRecipes.toString()],
+        ["Total Inventory Items", reportData.summary.totalInventoryItems.toString()],
+        ["Inventory Value", currency(reportData.summary.inventoryValue)],
+        ["Weekly Sales", currency(reportData.summary.totalWeeklySales)],
+        ["Weekly Costs", currency(reportData.summary.totalWeeklyCosts)],
+        ["Weekly Profit", currency(reportData.summary.weeklyProfit)],
+        ["Items Expiring Soon", reportData.summary.expiringSoonCount.toString()],
+        ["Low Stock Items", reportData.summary.lowStockCount.toString()],
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [139, 0, 0] },
+      margin: { left: 14, right: 14 },
+    });
+
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // Weekly Sales Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("Weekly Sales", 14, yPos);
+    yPos += 5;
+
+    doc.autoTable({
+      startY: yPos,
+      head: [["Day", "Sales (ZAR)", "Costs (ZAR)", "Profit (ZAR)"]],
+      body: reportData.weeklySales.map(day => [
+        day.day,
+        day.sales.toFixed(2),
+        day.costs.toFixed(2),
+        (day.sales - day.costs).toFixed(2),
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [139, 0, 0] },
+      margin: { left: 14, right: 14 },
+    });
+
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // Add new page if needed for inventory
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Inventory Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("Inventory", 14, yPos);
+    yPos += 5;
+
+    doc.autoTable({
+      startY: yPos,
+      head: [["Name", "Qty", "Unit", "Expiry", "Cost (ZAR)"]],
+      body: reportData.inventory.map(item => [
+        item.name,
+        item.qty.toString(),
+        item.unit,
+        item.expiry || "N/A",
+        (item.cost || 0).toFixed(2),
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [139, 0, 0] },
+      margin: { left: 14, right: 14 },
+    });
+
+    yPos = doc.lastAutoTable.finalY + 15;
+
+    // Add new page if needed for recipes
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Recipes Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text("Recipes", 14, yPos);
+    yPos += 5;
+
+    doc.autoTable({
+      startY: yPos,
+      head: [["Name", "Type", "Cost (ZAR)"]],
+      body: reportData.recipes.map(recipe => [
+        recipe.name,
+        recipe.type || "N/A",
+        (recipe.cost || 0).toFixed(2),
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [139, 0, 0] },
+      margin: { left: 14, right: 14 },
+    });
+
+    // Save PDF with timestamp in filename
+    const filename = `INSY7315_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(filename);
+  };
 
   // derived metrics
   const inventoryValue = useMemo(() => {
@@ -125,9 +400,26 @@ export default function ReportsPage() {
           value={end}
           onChange={(e) => setEnd(e.target.value)}
         />
-        <Button variant="contained">Generate Report</Button>
-        <Button variant="outlined">Export PDF</Button>
-        <Button variant="outlined">Export CSV</Button>
+        {/* Generate Report button - aggregates all data into structured report */}
+        <HintTooltip title="Generate a comprehensive report with all inventory, recipes, and sales data">
+          <Button variant="contained" onClick={handleGenerateReport}>
+            Generate Report
+          </Button>
+        </HintTooltip>
+        
+        {/* Export PDF button - creates downloadable PDF with formatted tables */}
+        <HintTooltip title="Export the generated report as a professionally formatted PDF file">
+          <Button variant="outlined" onClick={handleExportPDF} disabled={!reportGenerated}>
+            Export PDF
+          </Button>
+        </HintTooltip>
+        
+        {/* Export CSV button - creates downloadable CSV for Excel/Sheets */}
+        <HintTooltip title="Export the generated report as a CSV file for use in Excel or Google Sheets">
+          <Button variant="outlined" onClick={handleExportCSV} disabled={!reportGenerated}>
+            Export CSV
+          </Button>
+        </HintTooltip>
 
         {/* Quick Add Sale */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-end' }}>

@@ -74,7 +74,8 @@ const CalculatorPage = () => {
           inputProps={{ min: 0 }}
           placeholder="Enter quantity"
         />
-        <Button variant="contained" color="error" disabled={recipeRows.length === 0}>Calculate</Button>
+        {/* Use default contained style from theme for uniform look across the app */}
+        <Button variant="contained" disabled={recipeRows.length === 0}>Calculate</Button>
       </Box>
       <Card
         sx={{

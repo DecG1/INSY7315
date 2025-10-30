@@ -10,12 +10,14 @@ import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday } from "./analyticsService.js";
+import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon } from "./analyticsService.js";
+import { liveQuery } from "dexie";
+import { db } from "./db.js";
 
 export default function Dashboard() {
   const [invCount, setInvCount] = useState(0);
   const [recipeCount, setRecipeCount] = useState(0);
-  const [expiringSoon, setExpiringSoon] = useState(0); // optional calc
+  const [expiringSoon, setExpiringSoon] = useState(0); // number of items expiring within threshold
   const [ordersToday, setOrdersToday] = useState(0);
   const [revenueToday, setRevenueToday] = useState(0);
   const [chartData, setChartData] = useState([]);                 // chart data from DB
@@ -47,17 +49,19 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [ic, rc, salesData, ot] = await Promise.all([
+      const [ic, rc, salesData, ot, es] = await Promise.all([
         countInventory(),
         countRecipes(),
         fetchSalesData(period), // Fetch sales for current period
         countOrdersToday(),
+        countExpiringSoon(7), // items expiring within next 7 days
       ]);
       setInvCount(ic);
       setRecipeCount(rc);
 
       setChartData(salesData);
       setOrdersToday(ot);
+      setExpiringSoon(es);
       
       // Calculate today's revenue based on period context
       // For weekly: find today's day of week (Sun-Sat)
@@ -80,7 +84,7 @@ export default function Dashboard() {
         setRevenueToday(todayBucket ? todayBucket.sales : 0);
       }
 
-      setExpiringSoon(0);
+  // no-op; expiringSoon already set
     } finally {
       setIsRefreshing(false);
     }
@@ -90,6 +94,21 @@ export default function Dashboard() {
   useEffect(() => {
     fetchData();
   }, [period]); // Re-fetch when period changes
+
+  // Live update Expiring Soon whenever inventory changes
+  useEffect(() => {
+    const sub = liveQuery(() => db.inventory.toArray()).subscribe({
+      next: async () => {
+        try {
+          const es = await countExpiringSoon(7);
+          setExpiringSoon(es);
+        } catch (e) {
+          // swallow
+        }
+      },
+    });
+    return () => sub.unsubscribe();
+  }, []);
   
   /**
    * Handle period toggle button change
@@ -126,7 +145,7 @@ export default function Dashboard() {
           <MetricCard title="Orders Today" value={ordersToday} note="From today's saved dockets" icon={CalendarClock} />
         </Grid>
         <Grid item xs={12} md={3}>
-          <MetricCard title="Expiring Soon" value={expiringSoon} note="(not calculated yet)" icon={PackageX} />
+          <MetricCard title="Expiring Soon" value={expiringSoon} note="Next 7 days" icon={PackageX} />
         </Grid>
         <Grid item xs={12} md={3}>
           <MetricCard title="Daily Revenue" value={currency(revenueToday)} note="From local sales table" icon={DollarSign} />

@@ -358,12 +358,6 @@ const ScannerPage = () => {
                 startIcon={<Save size={16} />}
                 onClick={saveDocket}
                 disabled={orderTotal === 0}
-                sx={{
-                  borderRadius: '12px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  color: 'white',
-                }}
               >
                 Save Docket
               </Button>

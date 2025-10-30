@@ -134,3 +134,25 @@ export async function yearlySales() {
 export function addSale({ date = new Date().toISOString(), amount, cost = 0 }) {
   return db.sales.add({ date, amount: Number(amount), cost: Number(cost) });
 }
+
+/**
+ * Count inventory items expiring soon (default: within 7 days, including today).
+ * Mirrors the logic used by ExpiryChip: days <= 7 and >= 0.
+ * Items without a valid expiry date are ignored.
+ * @param {number} withinDays - Number of days from today to consider as "soon".
+ * @returns {Promise<number>} Count of items expiring soon
+ */
+export async function countExpiringSoon(withinDays = 7) {
+  const now = new Date();
+  // Normalize current time to reduce edge-case drift; ExpiryChip uses live now
+  const rows = await (db.inventory?.toArray?.() ?? []);
+  let count = 0;
+  for (const r of rows) {
+    if (!r?.expiry) continue;
+    const d = new Date(r.expiry);
+    if (isNaN(d.getTime())) continue;
+    const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+    if (days <= withinDays && days >= 0) count++;
+  }
+  return count;
+}
