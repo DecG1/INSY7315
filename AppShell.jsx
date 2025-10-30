@@ -13,6 +13,8 @@ import NotificationsPage from "./NotificationsPage.jsx";
 import CalculatorPage from "./CalculatorPage.jsx";
 import ReportsPage from "./ReportsPage.jsx";
 import SettingsPage from "./SettingsPage.jsx";
+import MenuBuilderPage from "./MenuBuilderPage.jsx";
+import SalesAnalyticsPage from "./SalesAnalyticsPage.jsx";
 
 /**
  * AppShell component
@@ -48,12 +50,14 @@ const AppShell = ({ onLogout }) => {
           {route === "scanner" && <ScannerPage />}
           {route === "recipes" && <RecipesPage />}
           {route === "pricing" && <PricingPage />}
+          {route === "menubuilder" && <MenuBuilderPage />}
+            {route === "salesanalytics" && <SalesAnalyticsPage />}
           {route === "notifications" && <NotificationsPage />}
           {route === "calculator" && <CalculatorPage />}
           {route === "reports" && <ReportsPage />}
           {route === "settings" && <SettingsPage />}
           {/* Fallback for unknown routes */}
-          {route !== "dashboard" && route !== "inventory" && route !== "scanner" && route !== "recipes" && route !== "pricing" && route !== "notifications" && route !== "calculator" && route !== "reports" && route !== "settings" && (
+            {route !== "dashboard" && route !== "inventory" && route !== "scanner" && route !== "recipes" && route !== "pricing" && route !== "menubuilder" && route !== "salesanalytics" && route !== "notifications" && route !== "calculator" && route !== "reports" && route !== "settings" && (
             <Box>
               <Card>
                 <CardContent>

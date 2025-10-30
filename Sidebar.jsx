@@ -1,8 +1,9 @@
 import React from "react";
 import { Box, Typography, Divider, Button, useTheme } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed } from "lucide-react";
+import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed, TrendingUp } from "lucide-react";
 import HintTooltip from "./HintTooltip.jsx"; // Import tooltip for navigation hints
+import Logo from "./Logo.jsx"; // Import custom restaurant logo
 
 const brandRed = "#8b0000";
 
@@ -38,9 +39,11 @@ const Sidebar = ({ current, setCurrent }) => {
   const items = [
     { key: "dashboard", label: "Dashboard", icon: BarChart3, hint: "View key metrics, orders today, and weekly financial overview" },
     { key: "inventory", label: "Inventory", icon: Boxes, hint: "Manage stock items, quantities, and expiry dates" },
-    { key: "scanner", label: "Docket Scanner", icon: QrCode, hint: "Enter customer orders manually and calculate gratuity" },
+  { key: "scanner", label: "Order Scanner", icon: QrCode, hint: "Enter customer orders manually and calculate gratuity" },
     { key: "recipes", label: "Recipes", icon: ChefHat, hint: "Manage recipes and track ingredient usage" },
     { key: "pricing", label: "Ingredient Pricing", icon: DollarSign, hint: "Set and update ingredient costs for accurate pricing" },
+    { key: "menubuilder", label: "Menu Builder", icon: UtensilsCrossed, hint: "Smart menu suggestions based on available inventory" },
+    { key: "salesanalytics", label: "Sales Analytics", icon: TrendingUp, hint: "Analyze best-selling and least-selling items to optimize your menu" },
     { key: "notifications", label: "Notifications", icon: Bell, hint: "View alerts for low stock and expiring items" },
     { key: "calculator", label: "Calculator", icon: FileSpreadsheet, hint: "Calculate recipe costs based on quantity" },
     { key: "reports", label: "Reports", icon: BarChart3, hint: "View weekly sales analytics and add manual sales entries" },
@@ -72,20 +75,8 @@ const Sidebar = ({ current, setCurrent }) => {
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4, mt: 1 }}>
-        <Box
-          sx={{
-            width: 42,
-            height: 42,
-            borderRadius: '12px',
-            bgcolor: brandRed,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(139, 0, 0, 0.3)',
-          }}
-        >
-          <UtensilsCrossed size={24} color="#ffffff" />
-        </Box>
+        {/* Custom restaurant logo with matte black background */}
+        <Logo size={42} />
         <Typography variant="h6" fontWeight={800} color={brandRed} sx={{ letterSpacing: '-0.5px' }}>
           Restaurant
         </Typography>

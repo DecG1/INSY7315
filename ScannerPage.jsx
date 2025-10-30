@@ -7,7 +7,7 @@ import { addSale } from "./analyticsService.js";
 import HintTooltip from "./HintTooltip.jsx";
 
 const ScannerPage = () => {
-  // Docket items organized by category
+  // Order items organized by category
   const [food, setFood] = useState([]);
   const [drinks, setDrinks] = useState([]);
   const [dessert, setDessert] = useState([]);
@@ -73,7 +73,7 @@ const ScannerPage = () => {
     setAmountPaid("");
   };
   
-  // Save docket (placeholder for future integration)
+  // Save order (placeholder for future integration)
   const saveDocket = async () => {
     const docket = {
       food, drinks, dessert, other,
@@ -82,8 +82,8 @@ const ScannerPage = () => {
     };
     // Persist as a sale for dashboard/graphs; using order total as revenue, cost left as 0 for now
     await addSale({ date: docket.timestamp, amount: orderTotal, cost: 0 });
-    console.log("Docket saved:", docket);
-    alert("Docket saved and added to dashboard analytics.");
+  console.log("Order saved:", docket);
+  alert("Order saved and added to dashboard analytics.");
     // Optional: clear after save
     clearDocket();
   };
@@ -152,7 +152,7 @@ const ScannerPage = () => {
             </Box>
           </Box>
           
-          <HintTooltip title={`Add a new ${title.toLowerCase()} item to this docket. Enter the item name and price.`}>
+          <HintTooltip title={`Add a new ${title.toLowerCase()} item to this order. Enter the item name and price.`}>
             <Button
               variant="contained"
               fullWidth
@@ -336,10 +336,10 @@ const ScannerPage = () => {
     >
       <SectionTitle 
         icon={Receipt} 
-        title="Manual Docket Entry"
+  title="Manual Order Entry"
         action={
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <HintTooltip title="Clear all items and reset the docket to start fresh">
+            <HintTooltip title="Clear all items and reset the order to start fresh">
               <Button
                 variant="outlined"
                 onClick={clearDocket}
@@ -352,14 +352,14 @@ const ScannerPage = () => {
                 Clear All
               </Button>
             </HintTooltip>
-            <HintTooltip title="Save this docket and add it to sales records. The order will appear in today's orders count and financial reports">
+            <HintTooltip title="Save this order and add it to sales records. The order will appear in today's orders count and financial reports">
               <Button
                 variant="contained"
                 startIcon={<Save size={16} />}
                 onClick={saveDocket}
                 disabled={orderTotal === 0}
               >
-                Save Docket
+                Save Order
               </Button>
             </HintTooltip>
           </Box>

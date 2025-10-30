@@ -1,0 +1,101 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Matte black background -->
+  <rect width="200" height="200" fill="#1a1a1a" rx="20" />
+  
+  <!-- White organic brushstroke circular swirl design -->
+  <g fill="#ffffff" fill-rule="evenodd">
+    <!-- Main outer swirl stroke - top right flowing curve -->
+    <path
+      d="M 140 80
+         C 160 70, 175 85, 180 100
+         C 185 120, 175 135, 160 145
+         L 155 140
+         C 168 132, 175 120, 172 105
+         C 170 95, 160 88, 148 92
+         Z"
+    />
+    
+    <!-- Outer ring - left side flowing down -->
+    <path
+      d="M 60 70
+         C 40 80, 25 100, 25 125
+         C 25 150, 40 170, 65 178
+         L 68 172
+         C 48 165, 35 148, 35 125
+         C 35 105, 45 88, 62 78
+         Z"
+    />
+    
+    <!-- Middle circular swirl - creates the main spiral -->
+    <path
+      d="M 100 50
+         C 135 50, 163 78, 163 113
+         C 163 148, 135 175, 100 175
+         C 65 175, 37 148, 37 113
+         C 37 85, 55 62, 80 55
+         L 82 65
+         C 62 70, 47 90, 47 113
+         C 47 142, 70 165, 100 165
+         C 130 165, 153 142, 153 113
+         C 153 84, 130 60, 100 60
+         L 98 70
+         C 122 72, 140 92, 140 113
+         C 140 135, 122 152, 100 152
+         L 95 145
+         C 115 142, 128 128, 128 113
+         C 128 98, 115 87, 100 87
+         C 88 87, 78 95, 75 107
+         L 68 105
+         C 72 88, 84 78, 100 78
+         Z"
+    />
+    
+    <!-- Inner spiral details -->
+    <path
+      d="M 100 95
+         C 110 95, 118 103, 118 113
+         C 118 123, 110 130, 100 130
+         L 98 122
+         C 105 120, 110 117, 110 113
+         C 110 108, 105 103, 100 103
+         Z"
+    />
+    
+    <!-- Organic drip/splash details - bottom left -->
+    <path
+      d="M 55 145
+         L 50 155
+         L 48 148
+         Z"
+    />
+    
+    <!-- Small accent stroke - top left -->
+    <path
+      d="M 65 60
+         L 58 65
+         L 62 58
+         Z"
+    />
+    
+    <!-- Bottom right flowing tail -->
+    <path
+      d="M 145 160
+         C 155 165, 165 170, 170 175
+         L 165 172
+         C 160 168, 152 163, 145 158
+         Z"
+    />
+    
+    <!-- Connecting stroke pieces for organic flow -->
+    <ellipse cx="115" cy="140" rx="8" ry="12" transform="rotate(-25 115 140)" />
+    <ellipse cx="75" cy="80" rx="6" ry="10" transform="rotate(35 75 80)" />
+    
+    <!-- Heart-shaped detail in the center (visible in original) -->
+    <path
+      d="M 145 100
+         L 148 105
+         L 143 103
+         Z"
+    />
+  </g>
+</svg>

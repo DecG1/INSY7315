@@ -156,3 +156,18 @@ export async function countExpiringSoon(withinDays = 7) {
   }
   return count;
 }
+
+  /**
+   * Get complete order/sales history
+   * Returns all sales records with their items for analytics
+   * @returns {Promise<Array>} Array of all sales/order records
+   */
+  export async function getOrderHistory() {
+    try {
+      const orders = await db.sales?.toArray?.() ?? [];
+      return orders;
+    } catch (error) {
+      console.error("Error fetching order history:", error);
+      return [];
+    }
+  }

@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { VERIFIED_USERS, REQUIRE_ACCESS_CODE } from "./config.js";
 import { setSession } from "./sessionService.js";
+import Logo from "./Logo.jsx"; // Import custom restaurant logo
 
 export default function LoginPage({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -82,6 +83,11 @@ export default function LoginPage({ onLoginSuccess }) {
             p: 4,
           }}
         >
+          {/* Restaurant Logo */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <Logo size={80} />
+          </Box>
+          
           <Typography
             variant="h4"
             fontWeight={700}
