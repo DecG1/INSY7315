@@ -1,9 +1,4 @@
-Here’s an elevated, professional-grade version of your README that improves clarity, flow, formatting, and tone—while fully preserving all your original content and structure.
-
----
-
-````{"variant":"standard","title":"Enhanced README – Restaurant Management System","id":"76591"}
-# 🍽️ Restaurant Management System – INSY7315
+Restaurant Management System – INSY7315
 
 A **comprehensive web-based restaurant management system** built using **React**, **Material-UI**, and **IndexedDB**.  
 This platform streamlines operations by providing powerful tools for **inventory tracking**, **recipe management**, **order processing**, **sales analytics**, and **intelligent menu planning**.
