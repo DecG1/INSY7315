@@ -12,17 +12,7 @@ import { Card, CardContent, Box, Typography } from "@mui/material";
  * @param {React.Component} icon - Optional icon component
  */
 const MetricCard = ({ title, value, note, tone = "default", icon: Icon }) => (
-  <Card
-    sx={{
-      borderRadius: '16px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-      transition: 'all 0.3s ease-in-out',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
-      },
-    }}
-  >
+  <Card sx={{ borderRadius: '12px' }}>
     <CardContent sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <Box sx={{ flex: 1 }}>

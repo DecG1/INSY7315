@@ -43,107 +43,105 @@ export const ThemeProvider = ({ children }) => {
   // Create dynamic MUI theme based on dark mode setting
   // Theme automatically updates when darkMode changes
   const theme = useMemo(() => createTheme({
-    // Set palette mode (MUI will adjust many colors automatically)
     palette: {
       mode: darkMode ? 'dark' : 'light',
       primary: { main: brandRed },
-      secondary: { main: "#d32f2f" },
-      // Custom background colors for dark/light modes
-      background: darkMode ? {
-        default: "#121212", // Main app background in dark mode
-        paper: "#1e1e1e",   // Card/paper background in dark mode
-      } : {
-        default: "#f5f7fa", // Main app background in light mode
-        paper: "#ffffff",   // Card/paper background in light mode
-      },
+      secondary: { main: '#5c6f7b' },
+      background: darkMode
+        ? { default: '#121212', paper: '#1e1e1e' }
+        : { default: '#f7f8fa', paper: '#ffffff' },
+      divider: darkMode ? 'rgba(255,255,255,0.12)' : '#e6e8eb',
     },
     typography: {
       fontFamily: ['"Segoe UI"', 'Inter', 'system-ui', '-apple-system', 'Roboto', 'Arial', 'sans-serif'].join(", "),
-      h4: {
-        fontWeight: 700,
-        letterSpacing: '-0.5px',
-      },
-      h5: {
-        fontWeight: 700,
-        letterSpacing: '-0.3px',
-      },
-      h6: {
-        fontWeight: 600,
-      },
-      body1: {
-        letterSpacing: '0.3px',
-      },
+      h4: { fontWeight: 700, letterSpacing: '-0.4px' },
+      h5: { fontWeight: 700, letterSpacing: '-0.3px' },
+      h6: { fontWeight: 600, letterSpacing: '-0.2px' },
+      subtitle1: { color: '#5c6f7b' },
+      body1: { letterSpacing: '0.2px' },
+      button: { fontWeight: 600, textTransform: 'none' },
     },
-    shape: { borderRadius: 16 },
+    shape: { borderRadius: 12 },
     components: {
-      // Card component styling with dark mode support
+      MuiCssBaseline: {
+        styleOverrides: {
+          body: {
+            backgroundColor: darkMode ? '#121212' : '#f7f8fa',
+            scrollbarColor: '#c1c7cd transparent',
+            scrollbarWidth: 'thin',
+          },
+          '::-webkit-scrollbar': { width: 8, height: 8 },
+          '::-webkit-scrollbar-thumb': { backgroundColor: '#c1c7cd', borderRadius: 8 },
+          '::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: {
+            backgroundColor: darkMode ? '#1e1e1e' : '#ffffff',
+            color: darkMode ? '#e5e7eb' : '#0f1720',
+            boxShadow: 'none',
+            borderBottom: '1px solid',
+            borderColor: darkMode ? 'rgba(255,255,255,0.12)' : '#e6e8eb',
+          },
+        },
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            borderRight: '1px solid',
+            borderColor: darkMode ? 'rgba(255,255,255,0.12)' : '#e6e8eb',
+          },
+        },
+      },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: 16,
-            // Enhanced shadows for dark mode for better depth perception
-            boxShadow: darkMode 
-              ? '0 4px 20px rgba(0, 0, 0, 0.5)'
-              : '0 4px 20px rgba(0, 0, 0, 0.08)',
-            transition: 'all 0.3s ease-in-out',
-            '&:hover': {
-              boxShadow: darkMode
-                ? '0 6px 25px rgba(0, 0, 0, 0.7)'
-                : '0 6px 25px rgba(0, 0, 0, 0.12)',
-            },
-            animation: 'fadeIn 0.6s ease-in-out',
-            '@keyframes fadeIn': {
-              from: {
-                opacity: 0,
-                transform: 'translateY(20px)',
-              },
-              to: {
-                opacity: 1,
-                transform: 'translateY(0)',
-              },
-            },
+            borderRadius: 12,
+            boxShadow: darkMode
+              ? '0 1px 2px rgba(0,0,0,0.7), 0 1px 3px rgba(0,0,0,0.6)'
+              : '0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.1)',
           },
         },
       },
-      // Button component styling with dark mode gradients
       MuiButton: {
         styleOverrides: {
           root: {
-            borderRadius: 12,
+            borderRadius: 10,
             textTransform: 'none',
             fontWeight: 600,
-            padding: '10px 20px',
+            padding: '10px 16px',
             boxShadow: 'none',
-            '&:hover': {
-              boxShadow: darkMode
-                ? '0 4px 12px rgba(0, 0, 0, 0.5)'
-                : '0 4px 12px rgba(0, 0, 0, 0.15)',
-            },
           },
-          contained: {
-            // Different gradient colors for dark vs light mode
-            background: darkMode
-              ? 'linear-gradient(135deg, #8b0000 0%, #660000 100%)' // Dark mode: darker red gradient
-              : 'linear-gradient(135deg, #0078d7 0%, #005fa3 100%)', // Light mode: blue gradient
-            '&:hover': {
-              background: darkMode
-                ? 'linear-gradient(135deg, #660000 0%, #440000 100%)'
-                : 'linear-gradient(135deg, #005fa3 0%, #004578 100%)',
-            },
+          containedPrimary: {
+            backgroundColor: brandRed,
+            '&:hover': { backgroundColor: '#6f0000' },
+          },
+          outlined: {
+            borderWidth: 2,
+            '&:hover': { borderWidth: 2 },
           },
         },
+      },
+      MuiChip: {
+        styleOverrides: { root: { borderRadius: 8 } },
       },
       MuiTextField: {
         styleOverrides: {
-          root: {
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 12,
-            },
-          },
+          root: { '& .MuiOutlinedInput-root': { borderRadius: 10 } },
         },
       },
+      MuiTableCell: {
+        styleOverrides: {
+          root: { paddingTop: 10, paddingBottom: 10 },
+          head: { fontWeight: 700 },
+        },
+      },
+      MuiTooltip: {
+        styleOverrides: { tooltip: { fontSize: 12 } },
+      },
     },
-  }), [darkMode]); // Recreate theme when darkMode changes
+  }), [darkMode]);
 
   return (
     <ThemeContext.Provider value={{ darkMode, setDarkMode, toggleDarkMode }}>

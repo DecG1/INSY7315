@@ -13,16 +13,15 @@ const SidebarButton = styled(Button)(({ theme, selected }) => ({
   color: selected ? "#fff" : theme.palette.text.primary,
   backgroundColor: selected ? brandRed : "transparent",
   textTransform: "none",
-  padding: "12px 16px",
-  borderRadius: 12,
+  padding: "10px 14px",
+  borderRadius: 10,
   gap: 12,
   fontWeight: selected ? 600 : 500,
   fontSize: "15px",
-  transition: "all 0.2s ease-in-out",
+  transition: "background-color 0.2s ease-in-out, color 0.2s ease-in-out",
+  borderLeft: selected ? `3px solid #6f0000` : `3px solid transparent`,
   "&:hover": {
-    backgroundColor: selected ? brandRed : "rgba(139, 0, 0, 0.08)",
-    transform: "translateX(4px)",
-    boxShadow: selected ? "0 4px 12px rgba(139, 0, 0, 0.3)" : "none",
+    backgroundColor: selected ? brandRed : "rgba(139, 0, 0, 0.06)",
   },
 }));
 
@@ -57,29 +56,22 @@ const Sidebar = ({ current, setCurrent }) => {
   return (
     <Box
       sx={{
-        width: 280,
+        width: 264,
         height: '100vh',
         p: 3,
         display: 'flex',
         flexDirection: 'column',
-        // Border color adapts to theme mode
-        borderRight: 1,
-        borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
-        // Background uses theme palette for automatic dark/light switching
+        borderRight: '1px solid',
+        borderColor: 'divider',
         bgcolor: theme.palette.background.paper,
-        // Shadow strength adjusts for better visibility in dark mode
-        boxShadow: theme.palette.mode === 'dark' 
-          ? '2px 0 12px rgba(0, 0, 0, 0.5)' 
-          : '2px 0 12px rgba(0, 0, 0, 0.04)',
+        boxShadow: 'none',
         gap: 2,
+        overflowY: 'auto',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 4, mt: 1 }}>
-        {/* Custom restaurant logo with matte black background */}
-        <Logo size={42} />
-        <Typography variant="h6" fontWeight={800} color={brandRed} sx={{ letterSpacing: '-0.5px' }}>
-          Restaurant
-        </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4, mt: 1 }}>
+        {/* Centered restaurant logo */}
+        <Logo size={48} />
       </Box>
       {/* Render navigation items with hint tooltips */}
       {items.map((it) => (

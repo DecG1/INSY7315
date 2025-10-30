@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton } from "@mui/material";
+import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton } from "@mui/material";
 import {
-  BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw
+  BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink
 } from "lucide-react";
 
 import MetricCard from "./MetricCard.jsx";
 import SectionTitle from "./SectionTitle.jsx";
+import StatusChip from "./StatusChip.jsx";
 import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon } from "./analyticsService.js";
+import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications } from "./analyticsService.js";
 import { liveQuery } from "dexie";
 import { db } from "./db.js";
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }) {
   const [invCount, setInvCount] = useState(0);
   const [recipeCount, setRecipeCount] = useState(0);
   const [expiringSoon, setExpiringSoon] = useState(0); // number of items expiring within threshold
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [chartData, setChartData] = useState([]);                 // chart data from DB
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [period, setPeriod] = useState('weekly'); // Current period: 'weekly', 'monthly', or 'yearly'
+  const [notifications, setNotifications] = useState([]); // Recent notifications
   
   /**
    * Fetch sales data based on selected period
@@ -49,12 +51,13 @@ export default function Dashboard() {
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [ic, rc, salesData, ot, es] = await Promise.all([
+      const [ic, rc, salesData, ot, es, notifs] = await Promise.all([
         countInventory(),
         countRecipes(),
         fetchSalesData(period), // Fetch sales for current period
         countOrdersToday(),
         countExpiringSoon(7), // items expiring within next 7 days
+        listNotifications(), // Fetch recent notifications
       ]);
       setInvCount(ic);
       setRecipeCount(rc);
@@ -62,6 +65,7 @@ export default function Dashboard() {
       setChartData(salesData);
       setOrdersToday(ot);
       setExpiringSoon(es);
+      setNotifications(notifs.slice(0, 5)); // Keep only 5 most recent
       
       // Calculate today's revenue based on period context
       // For weekly: find today's day of week (Sun-Sat)
@@ -220,6 +224,90 @@ export default function Dashboard() {
             <Typography variant="body2" color="text.secondary">
               No sales data yet. Add sales entries to populate the chart.
             </Typography>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notifications Panel */}
+      <Card
+        sx={{
+          borderRadius: '12px',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <SectionTitle 
+            icon={Bell} 
+            title="Recent Notifications"
+            action={
+              <HintTooltip title="View all notifications and manage alert preferences">
+                <Button 
+                  variant="text" 
+                  size="small"
+                  endIcon={<ExternalLink size={14} />}
+                  onClick={() => onNavigate?.('notifications')}
+                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                >
+                  View All
+                </Button>
+              </HintTooltip>
+            }
+          />
+          {notifications.length === 0 ? (
+            <Box
+              sx={{
+                p: 4,
+                textAlign: 'center',
+                borderRadius: '10px',
+                bgcolor: 'rgba(0, 0, 0, 0.02)',
+              }}
+            >
+              <Bell size={40} color="#ccc" style={{ marginBottom: '12px' }} />
+              <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                No notifications
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                All clear! You'll see alerts here when actions are needed.
+              </Typography>
+            </Box>
+          ) : (
+            <List sx={{ p: 0 }}>
+              {notifications.map((notif, index) => (
+                <React.Fragment key={notif.id}>
+                  <ListItem
+                    sx={{
+                      px: 2,
+                      py: 1.5,
+                      borderRadius: '10px',
+                      '&:hover': {
+                        bgcolor: 'rgba(0, 0, 0, 0.02)',
+                      },
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                          <StatusChip 
+                            label={notif.tone === 'error' ? 'Alert' : 'Info'} 
+                            color={notif.tone === 'error' ? 'error' : 'default'}
+                          />
+                          <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                            {notif.ago || 'Recently'}
+                          </Typography>
+                        </Box>
+                      }
+                      secondary={
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          {notif.msg}
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                  {index < notifications.length - 1 && (
+                    <Box sx={{ height: 1, bgcolor: 'divider', mx: 2 }} />
+                  )}
+                </React.Fragment>
+              ))}
+            </List>
           )}
         </CardContent>
       </Card>

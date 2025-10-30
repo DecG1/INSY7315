@@ -1,7 +1,7 @@
 
 // AppShell: Main layout and navigation for authenticated users
 import React, { useState } from "react";
-import { Box, Card, CardContent, Typography, useTheme } from "@mui/material";
+import { Box, Card, CardContent, Typography, useTheme, Container } from "@mui/material";
 import Sidebar from "./Sidebar.jsx";
 import Header from "./Header.jsx";
 import Dashboard from "./Dashboard.jsx";
@@ -29,13 +29,10 @@ const AppShell = ({ onLogout }) => {
   const theme = useTheme();
 
   return (
-    <Box sx={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      // Dynamic background gradient based on theme mode
-      background: theme.palette.mode === 'dark' 
-        ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)' // Dark mode gradient
-        : 'linear-gradient(135deg, #f5f7fa 0%, #e8ebef 100%)' // Light mode gradient
+    <Box sx={{
+      minHeight: '100vh',
+      display: 'flex',
+      backgroundColor: theme.palette.background.default,
     }}>
       {/* Sidebar navigation */}
       <Sidebar current={route} setCurrent={setRoute} />
@@ -44,8 +41,9 @@ const AppShell = ({ onLogout }) => {
         {/* Header with logout */}
         <Header onLogout={onLogout} />
         {/* Page content, routed by route key */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 3, overflow: 'auto' }}>
-          {route === "dashboard" && <Dashboard />}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+          <Container maxWidth="xl" sx={{ py: 3 }}>
+          {route === "dashboard" && <Dashboard onNavigate={setRoute} />}
           {route === "inventory" && <InventoryPage />}
           {route === "scanner" && <ScannerPage />}
           {route === "recipes" && <RecipesPage />}
@@ -67,6 +65,7 @@ const AppShell = ({ onLogout }) => {
               </Card>
             </Box>
           )}
+          </Container>
         </Box>
       </Box>
     </Box>
