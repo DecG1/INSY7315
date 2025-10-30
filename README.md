@@ -392,5 +392,3 @@ For issues, suggestions, or requests:
 ---
 
 _Last Updated: October 30, 2025_
-
-Would you like me to format this into a **GitHub-optimized markdown version** (with collapsible sections and badges alignment for better readability on GitHub)?
