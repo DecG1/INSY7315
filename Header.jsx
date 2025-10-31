@@ -4,6 +4,8 @@ import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { LogOut } from "lucide-react";
 import { todayStr, brandRed } from "./helpers.js";
+import { logLogout } from "./auditService.js";
+import { getSession } from "./sessionService.js";
 
 /**
  * Header for the app
@@ -11,6 +13,23 @@ import { todayStr, brandRed } from "./helpers.js";
  * @param {function} onLogout - Logout handler
  */
 const Header = ({ name = "Mario", onLogout }) => {
+  const handleLogout = async () => {
+    try {
+      // Log logout event before clearing session
+      const session = await getSession();
+      if (session?.email) {
+        await logLogout(session.email);
+      }
+    } catch (err) {
+      console.error("Error logging logout:", err);
+    } finally {
+      // Call the original logout handler
+      if (onLogout) {
+        onLogout();
+      }
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -41,7 +60,7 @@ const Header = ({ name = "Mario", onLogout }) => {
         variant="outlined"
         color="error"
         startIcon={<LogOut size={16} />}
-        onClick={onLogout}
+        onClick={handleLogout}
         sx={{
           borderRadius: '10px',
           textTransform: 'none',

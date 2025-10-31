@@ -28,6 +28,7 @@ import { Users, Plus, Edit, Trash2, Key, AlertCircle } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
 import HintTooltip from "./HintTooltip.jsx";
 import { getAllUsers, createUser, updateUserPassword, updateUserRole, deleteUser } from "./userService.js";
+import { logUserCreated, logUserRoleChanged, logUserPasswordChanged, logUserDeleted } from "./auditService.js";
 import { validatePasswordStrength } from "./passwordService.js";
 import { getSession } from "./sessionService.js";
 
@@ -94,6 +95,7 @@ const UserManagementPage = () => {
 
     try {
       await createUser(newUser.email, newUser.password, newUser.role);
+      try { await logUserCreated(newUser.email, newUser.role); } catch {}
       setSuccess(`User ${newUser.email} created successfully`);
       setAddDialogOpen(false);
       setNewUser({ email: "", password: "", role: "Staff" });
@@ -108,7 +110,9 @@ const UserManagementPage = () => {
     if (!editingUser) return;
 
     try {
+      const oldRole = users.find(u => u.id === editingUser.id)?.role || "";
       await updateUserRole(editingUser.id, editingUser.role);
+      try { await logUserRoleChanged(editingUser.email, oldRole, editingUser.role); } catch {}
       setSuccess(`Role updated for ${editingUser.email}`);
       setEditDialogOpen(false);
       setEditingUser(null);
@@ -135,6 +139,7 @@ const UserManagementPage = () => {
 
     try {
       await updateUserPassword(editingUser.id, newPassword);
+      try { await logUserPasswordChanged(editingUser.email); } catch {}
       setSuccess(`Password updated for ${editingUser.email}`);
       setPasswordDialogOpen(false);
       setEditingUser(null);
@@ -157,6 +162,7 @@ const UserManagementPage = () => {
 
     try {
       await deleteUser(editingUser.id);
+      try { await logUserDeleted(editingUser.email, editingUser.role); } catch {}
       setSuccess(`User ${editingUser.email} deleted`);
       setDeleteDialogOpen(false);
       setEditingUser(null);

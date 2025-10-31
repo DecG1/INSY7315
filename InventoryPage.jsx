@@ -13,6 +13,7 @@ import ExpiryChip from "./ExpiryChip.jsx";
 // Dexie services
 import { listInventory, addInventory, deleteInventory } from "./inventoryService.js";
 import { updateInventory } from "./inventoryService.js"; // ensure exported
+import { logInventoryAdded, logInventoryDeleted, logInventoryUpdated } from "./auditService.js";
 import { CONV } from "./units.js";
 
 export default function InventoryPage() {
@@ -37,11 +38,13 @@ export default function InventoryPage() {
 
   async function handleAdded(newItem) {
     await addInventory(newItem);        // TOTAL cost; service computes ppu
+    try { await logInventoryAdded(newItem); } catch {}
     await refresh();
   }
 
-  async function handleDelete(id) {
-    await deleteInventory(id);
+  async function handleDelete(item) {
+    await deleteInventory(item.id);
+    try { await logInventoryDeleted(item); } catch {}
     await refresh();
   }
 
@@ -187,7 +190,7 @@ export default function InventoryPage() {
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton color="error" onClick={() => handleDelete(row.id)}>
+                      <IconButton color="error" onClick={() => handleDelete(row)}>
                         <Trash2 size={16} />
                       </IconButton>
                     </Tooltip>
@@ -340,14 +343,17 @@ function EditInventoryDialog({ open, item, onClose, onSaved }) {
     const nextQty = Number(form.qty || 0) + (isFinite(incQty) ? incQty : 0);
     const nextCost = Number(form.cost || 0) + (isFinite(incCost) ? incCost : 0);
 
-    await updateInventory(item.id, {
+    const updated = {
       name: form.name.trim(),
       qty: nextQty,
       unit: form.unit,
       expiry: form.expiry,
       cost: nextCost,          // TOTAL cost (service recomputes ppu)
       reorder: Number(form.reorder || 0),
-    });
+    };
+
+    await updateInventory(item.id, updated);
+    try { await logInventoryUpdated(item, updated); } catch {}
 
     await onSaved();
   }

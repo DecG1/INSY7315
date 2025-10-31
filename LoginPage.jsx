@@ -13,6 +13,7 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { authenticateUser } from "./userService.js";
 import { setSession } from "./sessionService.js";
+import { logLogin } from "./auditService.js";
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
 
 export default function LoginPage({ onLoginSuccess }) {
@@ -32,6 +33,8 @@ export default function LoginPage({ onLoginSuccess }) {
       const user = await authenticateUser(email, password);
       
       if (!user) {
+        // Log failed login attempt
+        await logLogin(email, false);
         setError("Invalid email or password. Please try again.");
         setLoading(false);
         return;
@@ -43,6 +46,9 @@ export default function LoginPage({ onLoginSuccess }) {
         role: user.role,
         userId: user.id 
       });
+      
+      // Log successful login
+      await logLogin(user.email, true);
       
       if (onLoginSuccess) {
         onLoginSuccess();
