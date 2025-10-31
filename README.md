@@ -10,11 +10,11 @@ This platform streamlines operations by providing powerful tools for **inventory
 
 ---
 
-## 🌟 Features Overview
+##  Features Overview
 
 ### Core Modules
 
-#### 📊 Dashboard
+####  Dashboard
 
 * Real-time KPIs and performance insights
 * Daily order and revenue tracking
@@ -22,27 +22,27 @@ This platform streamlines operations by providing powerful tools for **inventory
 * Inventory status and expiry alerts
 * Quick-access navigation to critical features
 
-#### 📦 Inventory Management
+####  Inventory Management
 
 * CRUD operations for inventory items
 * Quantity, unit, and price tracking
 * Expiry and low-stock alerts with visual cues
 * Search, filter, and batch operation support
 
-#### 🛒 Order Scanner (Manual Entry)
+####  Order Scanner (Manual Entry)
 
 * Category-based input (Food, Drinks, Desserts, Other)
 * Real-time total and gratuity calculations
 * Save orders directly to sales database
 * Clean, category-specific UI design
 
-#### 📖 Recipe Management
+####  Recipe Management
 
 * Multi-ingredient recipes with detailed instructions
 * Unit support (g, kg, ml, l, ea)
 * Integration with inventory for availability checks
 
-#### 💰 Ingredient Pricing
+####  Ingredient Pricing
 
 * Dynamic cost and profit calculations
 * Custom markup multipliers (default 2.5×)
@@ -61,30 +61,30 @@ This platform streamlines operations by providing powerful tools for **inventory
   * 🔴 **Cannot Make** – Insufficient stock
 * Actionable insights for inventory optimization
 
-#### 📈 Sales Analytics
+####  Sales Analytics
 
 * **Top 10** and **Bottom 10** item performance
 * Revenue contribution breakdowns
 * Time filters (All Time, 7 Days, 30 Days)
 * Pareto analysis (80/20 rule) and strategic insights
 
-#### 🔔 Notifications Center
+####  Notifications Center
 
 * Low-stock and expiry alerts
 * Read/unread tracking with priority sorting
 
-#### 🧮 Recipe Calculator
+####  Recipe Calculator
 
 * Cost per quantity and multi-recipe aggregation
 
-#### 📑 Reports
+####  Reports
 
 * Weekly sales summaries
 * PDF and CSV export options
 * Interactive charts (Recharts)
 * Manual sales entry and revenue tracking
 
-#### ⚙️ Settings
+####  Settings
 
 * Light/Dark theme toggle
 * Persistent user preferences
@@ -92,7 +92,7 @@ This platform streamlines operations by providing powerful tools for **inventory
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -124,7 +124,7 @@ npm run preview
 
 ---
 
-## 🏗️ Project Structure
+##  Project Structure
 
 ```
 INSY7315/
@@ -177,7 +177,7 @@ INSY7315/
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 **Frontend Framework**
 
@@ -207,7 +207,7 @@ INSY7315/
 
 ---
 
-## 📊 Database Schema
+##  Database Schema
 
 ### `inventory`
 
@@ -251,7 +251,7 @@ INSY7315/
 
 ---
 
-## 🎨 Theming & Customization
+##  Theming & Customization
 
 * Light and Dark modes (persistent)
 * Customizable brand colors
@@ -267,17 +267,17 @@ INSY7315/
 
 ---
 
-## 🔐 Authentication
+##  Authentication
 
 * Simple session-based login (default: `admin/admin`)
 * IndexedDB session storage
 * Auto-validation and logout
 
-> ⚠️ For production, integrate a backend authentication API.
+>  For production, integrate a backend authentication API.
 
 ---
 
-## 📱 Responsive Design
+##  Responsive Design
 
 Optimized layouts for:
 
@@ -288,7 +288,7 @@ Optimized layouts for:
 
 ---
 
-## 🔧 Feature Insights
+##  Feature Insights
 
 ### Unit Conversion
 
@@ -320,7 +320,7 @@ Seamless conversions between:
 
 ---
 
-## 🎯 Example Use Cases
+##  Example Use Cases
 
 ### Daily Operations
 
@@ -340,7 +340,7 @@ Seamless conversions between:
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 **Dev Server Issues**
 
@@ -368,7 +368,7 @@ npm run build
 
 ---
 
-## 📝 Development Notes
+##  Development Notes
 
 ### Adding New Features
 
@@ -390,7 +390,7 @@ npm run build
 
 ---
 
-## 🔄 Future Enhancements
+##  Future Enhancements
 
 ### Planned Features
 
@@ -413,13 +413,13 @@ npm run build
 
 ---
 
-## 📄 License
+##  License
 
 **Private and Proprietary** — All rights reserved.
 
 ---
 
-## 👥 Contributors
+##  Contributors
 
 * **Developer:** Restaurant Management Team
 * **Course:** INSY7315
@@ -427,7 +427,7 @@ npm run build
 
 ---
 
-## 📧 Support
+##  Support
 
 For issues, suggestions, or requests:
 
@@ -436,7 +436,7 @@ For issues, suggestions, or requests:
 
 ---
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 * Material-UI team for elegant components
 * Dexie.js for simple IndexedDB integration
@@ -445,4 +445,4 @@ For issues, suggestions, or requests:
 * React team for an exceptional framework
 ---
 
-*Last Updated: October 30, 2025*
+*Last Updated: October 31, 2025*
