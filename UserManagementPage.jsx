@@ -27,6 +27,7 @@ import {
 } from "@mui/material";
 import { UserPlus, Edit, Trash2, Key, Eye, EyeOff, Users } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
+import HintTooltip from "./HintTooltip.jsx";
 import { getSession } from "./sessionService.js";
 import {
   getAllUsers,
@@ -195,20 +196,23 @@ const UserManagementPage = () => {
       <SectionTitle
         icon={Users}
         title="User Management"
+        hint="Create, edit, and manage user accounts with different access levels. Admin users have full system access, managers can view reports and analytics, and staff have basic operational access."
         action={
-          <Button
-            variant="contained"
-            startIcon={<UserPlus size={18} />}
-            onClick={() => setOpenAdd(true)}
-            sx={{
-              borderRadius: '12px',
-              textTransform: 'none',
-              fontWeight: 600,
-              px: 3,
-            }}
-          >
-            Add User
-          </Button>
+          <HintTooltip hint="Add a new user account with email, password, and role assignment">
+            <Button
+              variant="contained"
+              startIcon={<UserPlus size={18} />}
+              onClick={() => setOpenAdd(true)}
+              sx={{
+                borderRadius: '12px',
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+              }}
+            >
+              Add User
+            </Button>
+          </HintTooltip>
         }
       />
 
@@ -217,10 +221,26 @@ const UserManagementPage = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>
+                  <HintTooltip hint="User's login email address">
+                    Email
+                  </HintTooltip>
+                </TableCell>
+                <TableCell>
+                  <HintTooltip hint="Access level: Admin (full access), Manager (reports & analytics), Staff (basic operations)">
+                    Role
+                  </HintTooltip>
+                </TableCell>
+                <TableCell>
+                  <HintTooltip hint="Date when the user account was created">
+                    Created At
+                  </HintTooltip>
+                </TableCell>
+                <TableCell align="right">
+                  <HintTooltip hint="Edit role, change password, or delete user account">
+                    Actions
+                  </HintTooltip>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -245,36 +265,44 @@ const UserManagementPage = () => {
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setEditingUser(user);
-                        setOpenEdit(true);
-                      }}
-                      sx={{ mr: 1 }}
-                    >
-                      <Edit size={18} />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setEditingUser(user);
-                        setNewPassword("");
-                        setShowPassword(false);
-                        setOpenPassword(true);
-                      }}
-                      sx={{ mr: 1 }}
-                    >
-                      <Key size={18} />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteUser(user)}
-                      disabled={user.id === currentUser?.userId}
-                      color="error"
-                    >
-                      <Trash2 size={18} />
-                    </IconButton>
+                    <HintTooltip hint="Change user's role (admin, manager, or staff)">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setEditingUser(user);
+                          setOpenEdit(true);
+                        }}
+                        sx={{ mr: 1 }}
+                      >
+                        <Edit size={18} />
+                      </IconButton>
+                    </HintTooltip>
+                    <HintTooltip hint="Reset user's password or generate a new secure password">
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setEditingUser(user);
+                          setNewPassword("");
+                          setShowPassword(false);
+                          setOpenPassword(true);
+                        }}
+                        sx={{ mr: 1 }}
+                      >
+                        <Key size={18} />
+                      </IconButton>
+                    </HintTooltip>
+                    <HintTooltip hint={user.id === currentUser?.userId ? "You cannot delete your own account" : "Permanently delete this user account"}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={user.id === currentUser?.userId}
+                          color="error"
+                        >
+                          <Trash2 size={18} />
+                        </IconButton>
+                      </span>
+                    </HintTooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -285,50 +313,62 @@ const UserManagementPage = () => {
 
       {/* Add User Dialog */}
       <Dialog open={openAdd} onClose={() => !loading && setOpenAdd(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New User</DialogTitle>
+        <DialogTitle>
+          <HintTooltip hint="Create a new user account by providing an email, password, and selecting their access level">
+            Add New User
+          </HintTooltip>
+        </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <TextField
-              label="Email"
-              type="email"
-              value={newUser.email}
-              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              value={newUser.password}
-              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-              fullWidth
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button variant="outlined" onClick={handleGeneratePassword} size="small">
-              Generate Secure Password
-            </Button>
-            <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={newUser.role}
-                label="Role"
-                onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-              >
-                <MenuItem value="staff">Staff</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-              </Select>
-            </FormControl>
+            <HintTooltip hint="User's email address for login. Must be unique.">
+              <TextField
+                label="Email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                fullWidth
+                required
+              />
+            </HintTooltip>
+            <HintTooltip hint="Password must be at least 8 characters with uppercase, lowercase, number, and special character">
+              <TextField
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                fullWidth
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </HintTooltip>
+            <HintTooltip hint="Click to automatically create a strong 12-character password">
+              <Button variant="outlined" onClick={handleGeneratePassword} size="small">
+                Generate Secure Password
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="Admin: Full access | Manager: Reports & analytics | Staff: Basic operations">
+              <FormControl fullWidth>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={newUser.role}
+                  label="Role"
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                >
+                  <MenuItem value="staff">Staff - Basic operational access</MenuItem>
+                  <MenuItem value="manager">Manager - Reports & analytics access</MenuItem>
+                  <MenuItem value="admin">Admin - Full system access</MenuItem>
+                </Select>
+              </FormControl>
+            </HintTooltip>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -341,25 +381,31 @@ const UserManagementPage = () => {
 
       {/* Edit Role Dialog */}
       <Dialog open={openEdit} onClose={() => !loading && setOpenEdit(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit User Role</DialogTitle>
+        <DialogTitle>
+          <HintTooltip hint="Change the user's access level to grant or restrict system permissions">
+            Edit User Role
+          </HintTooltip>
+        </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               User: {editingUser?.email}
             </Typography>
-            <FormControl fullWidth>
-              <InputLabel>Role</InputLabel>
-              <Select
-                value={editingUser?.role || ''}
-                label="Role"
-                onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-              >
-                <MenuItem value="staff">Staff</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-              </Select>
-            </FormControl>
+            <HintTooltip hint="Admin: Full access | Manager: Reports & analytics | Staff: Basic operations">
+              <FormControl fullWidth>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={editingUser?.role || ''}
+                  label="Role"
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                >
+                  <MenuItem value="staff">Staff - Basic operational access</MenuItem>
+                  <MenuItem value="manager">Manager - Reports & analytics access</MenuItem>
+                  <MenuItem value="admin">Admin - Full system access</MenuItem>
+                </Select>
+              </FormControl>
+            </HintTooltip>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -372,33 +418,41 @@ const UserManagementPage = () => {
 
       {/* Change Password Dialog */}
       <Dialog open={openPassword} onClose={() => !loading && setOpenPassword(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Change Password</DialogTitle>
+        <DialogTitle>
+          <HintTooltip hint="Reset this user's password to a new secure password">
+            Change Password
+          </HintTooltip>
+        </DialogTitle>
         <DialogContent>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           <Box sx={{ mt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               User: {editingUser?.email}
             </Typography>
-            <TextField
-              label="New Password"
-              type={showPassword ? "text" : "password"}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              fullWidth
-              required
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Button variant="outlined" onClick={handleGeneratePassword} size="small" sx={{ mt: 2 }}>
-              Generate Secure Password
-            </Button>
+            <HintTooltip hint="Password must be at least 8 characters with uppercase, lowercase, number, and special character">
+              <TextField
+                label="New Password"
+                type={showPassword ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                fullWidth
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </HintTooltip>
+            <HintTooltip hint="Click to automatically create a strong 12-character password">
+              <Button variant="outlined" onClick={handleGeneratePassword} size="small" sx={{ mt: 2 }}>
+                Generate Secure Password
+              </Button>
+            </HintTooltip>
           </Box>
         </DialogContent>
         <DialogActions>
