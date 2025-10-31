@@ -9,6 +9,7 @@ import { PlusCircle, QrCode, Filter, Edit, Search, Boxes, Trash2 } from "lucide-
 
 import SectionTitle from "./SectionTitle.jsx";
 import ExpiryChip from "./ExpiryChip.jsx";
+import HintTooltip from "./HintTooltip.jsx";
 
 // Dexie services
 import { listInventory, addInventory, deleteInventory } from "./inventoryService.js";
@@ -78,86 +79,98 @@ export default function InventoryPage() {
         title="Inventory"
         action={
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<PlusCircle size={16} />}
-              onClick={() => setOpenAdd(true)}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-                px: 3,
-              }}
-            >
-              Add New Item
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<QrCode size={16} />}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Scan New Item
-            </Button>
-            <Button
-              variant="outlined"
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Export Inventory
-            </Button>
-            <Button
-              variant="text"
-              color="error"
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              View Depleted Stock
-            </Button>
+            <HintTooltip hint="Add a new ingredient or item to your inventory with name, quantity, unit, cost, and expiry date">
+              <Button
+                variant="contained"
+                startIcon={<PlusCircle size={16} />}
+                onClick={() => setOpenAdd(true)}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 3,
+                }}
+              >
+                Add New Item
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="Scan item barcode to quickly add to inventory (coming soon)">
+              <Button
+                variant="outlined"
+                startIcon={<QrCode size={16} />}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Scan New Item
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="Export your inventory data to a CSV file for reports or backup">
+              <Button
+                variant="outlined"
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Export Inventory
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="View all items that are out of stock or below minimum quantity">
+              <Button
+                variant="text"
+                color="error"
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                View Depleted Stock
+              </Button>
+            </HintTooltip>
           </Box>
         }
       />
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <TextField
-          size="small"
-          placeholder="Search ingredients…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-root': {
+        <HintTooltip hint="Search for ingredients by name">
+          <TextField
+            size="small"
+            placeholder="Search ingredients…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '12px',
+              },
+              width: '400px',
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={18} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </HintTooltip>
+        <HintTooltip hint="Filter inventory by category, expiry date, or stock level">
+          <Button
+            variant="outlined"
+            startIcon={<Filter size={16} />}
+            sx={{
               borderRadius: '12px',
-            },
-            width: '400px',
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={18} />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <Button
-          variant="outlined"
-          startIcon={<Filter size={16} />}
-          sx={{
-            borderRadius: '12px',
-            textTransform: 'none',
-            fontWeight: 600,
-          }}
-        >
-          Filters
-        </Button>
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Filters
+          </Button>
+        </HintTooltip>
       </Box>
 
       <Card
@@ -195,16 +208,16 @@ export default function InventoryPage() {
                   <TableCell>{unitPrice.toFixed(2)}</TableCell>
                   <TableCell>{Number(row.cost || 0).toFixed(2)}</TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Edit">
+                    <HintTooltip hint="Edit this item's quantity, cost, unit, or expiry date">
                       <IconButton onClick={() => { setCurrent(row); setOpenEdit(true); }}>
                         <Edit size={16} />
                       </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
+                    </HintTooltip>
+                    <HintTooltip hint="Permanently delete this item from inventory">
                       <IconButton color="error" onClick={() => handleDelete(row.id)}>
                         <Trash2 size={16} />
                       </IconButton>
-                    </Tooltip>
+                    </HintTooltip>
                   </TableCell>
                 </TableRow>
               );

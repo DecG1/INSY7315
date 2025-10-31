@@ -24,6 +24,7 @@ import { ChefHat, PlusCircle, Eye, Pencil, Trash2, X, UtensilsCrossed } from "lu
 
 import SectionTitle from "./SectionTitle.jsx";
 import { currency } from "./helpers.js";
+import HintTooltip from "./HintTooltip.jsx";
 
 import { listRecipes, addRecipe, deleteRecipe } from "./recipesService.js";
 import { listInventory } from "./inventoryService.js";
@@ -237,18 +238,26 @@ export default function RecipesPage() {
                   <TableCell>{r.type}</TableCell>
                   <TableCell>{currency(r.cost ?? 0)}</TableCell>
                   <TableCell align="right">
-                    <IconButton title="Cook" onClick={() => handleCook(r)}>
-                      <UtensilsCrossed size={16} />
-                    </IconButton>
-                    <IconButton title="View">
-                      <Eye size={16} />
-                    </IconButton>
-                    <IconButton title="Edit">
-                      <Pencil size={16} />
-                    </IconButton>
-                    <IconButton title="Delete" color="error" onClick={() => handleDeleteRecipe(r.id)}>
-                      <Trash2 size={16} />
-                    </IconButton>
+                    <HintTooltip hint="Cook this recipe and deduct ingredients from inventory">
+                      <IconButton onClick={() => handleCook(r)}>
+                        <UtensilsCrossed size={16} />
+                      </IconButton>
+                    </HintTooltip>
+                    <HintTooltip hint="View recipe details and cooking instructions">
+                      <IconButton>
+                        <Eye size={16} />
+                      </IconButton>
+                    </HintTooltip>
+                    <HintTooltip hint="Edit recipe name, type, ingredients, or instructions">
+                      <IconButton>
+                        <Pencil size={16} />
+                      </IconButton>
+                    </HintTooltip>
+                    <HintTooltip hint="Permanently delete this recipe">
+                      <IconButton color="error" onClick={() => handleDeleteRecipe(r.id)}>
+                        <Trash2 size={16} />
+                      </IconButton>
+                    </HintTooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -366,9 +375,11 @@ export default function RecipesPage() {
                     ))}
                   </Select>
                 </FormControl>
-                <IconButton color="error" title="Remove" onClick={() => removeIngredientRow(idx)}>
-                  <X size={18} />
-                </IconButton>
+                <HintTooltip hint="Remove this ingredient from the recipe">
+                  <IconButton color="error" onClick={() => removeIngredientRow(idx)}>
+                    <X size={18} />
+                  </IconButton>
+                </HintTooltip>
                 {unitHint && (
                   <Typography variant="caption" color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
                     {unitHint}
@@ -378,24 +389,32 @@ export default function RecipesPage() {
             );
           })}
 
-          <Button startIcon={<PlusCircle size={16} />} onClick={addIngredientRow}>
-            Add Ingredient
-          </Button>
+          <HintTooltip hint="Add another ingredient to this recipe">
+            <Button startIcon={<PlusCircle size={16} />} onClick={addIngredientRow}>
+              Add Ingredient
+            </Button>
+          </HintTooltip>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Button variant="contained" color="success" onClick={calculateCost}>
-              Calculate Cost
-            </Button>
+            <HintTooltip hint="Calculate the total cost of all ingredients in this recipe based on current inventory prices">
+              <Button variant="contained" color="success" onClick={calculateCost}>
+                Calculate Cost
+              </Button>
+            </HintTooltip>
             <Typography variant="subtitle2">Estimated Cost: {currency(estCost)}</Typography>
           </Box>
 
           <Box sx={{ display: "flex", gap: 2 }}>
-            <Button variant="text" onClick={() => setNewRecipe((r) => ({ ...r, ingredients: [] }))}>
-              Clear
-            </Button>
-            <Button variant="contained" color="error" onClick={handleSaveRecipe}>
-              Save Recipe
-            </Button>
+            <HintTooltip hint="Clear all ingredients and start over">
+              <Button variant="text" onClick={() => setNewRecipe((r) => ({ ...r, ingredients: [] }))}>
+                Clear
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="Save this recipe to the database">
+              <Button variant="contained" color="error" onClick={handleSaveRecipe}>
+                Save Recipe
+              </Button>
+            </HintTooltip>
           </Box>
         </CardContent>
       </Card>

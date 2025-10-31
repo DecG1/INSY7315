@@ -15,6 +15,7 @@ import { authenticateUser } from "./userService.js";
 import { setSession } from "./sessionService.js";
 import { logLogin } from "./auditService.js";
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
+import HintTooltip from "./HintTooltip.jsx";
 
 export default function LoginPage({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
@@ -157,13 +158,15 @@ export default function LoginPage({ onLoginSuccess }) {
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        disabled={loading}
-                      >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </IconButton>
+                      <HintTooltip hint="Toggle password visibility">
+                        <IconButton
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          disabled={loading}
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </IconButton>
+                      </HintTooltip>
                     </InputAdornment>
                   ),
                 }}

@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { FileText, RefreshCw, Download, History } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
+import HintTooltip from "./HintTooltip.jsx";
 import { getAuditLogs, getAuditStats, AuditCategory } from "./auditService.js";
 import { getSession } from "./sessionService.js";
 
@@ -120,34 +121,39 @@ const AuditLogPage = () => {
       <SectionTitle
         icon={History}
         title="Audit Logs"
+        hint="View all system activity and user actions with timestamps, categories, and detailed information"
         action={
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <Button
-              variant="outlined"
-              startIcon={<Download size={18} />}
-              onClick={exportToCSV}
-              disabled={logs.length === 0}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<RefreshCw size={18} />}
-              onClick={loadLogs}
-              disabled={loading}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Refresh
-            </Button>
+            <HintTooltip hint="Download all audit logs as a CSV file for archival or reporting purposes">
+              <Button
+                variant="outlined"
+                startIcon={<Download size={18} />}
+                onClick={exportToCSV}
+                disabled={logs.length === 0}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Export CSV
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="Reload audit logs to see the latest system activity">
+              <Button
+                variant="contained"
+                startIcon={<RefreshCw size={18} />}
+                onClick={loadLogs}
+                disabled={loading}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Refresh
+              </Button>
+            </HintTooltip>
           </Box>
         }
       />
@@ -211,34 +217,38 @@ const AuditLogPage = () => {
         <CardContent sx={{ p: 3 }}>
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={categoryFilter}
-                  label="Category"
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                >
-                  <MenuItem value="all">All Categories</MenuItem>
-                  {Object.values(AuditCategory).map(cat => (
-                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <HintTooltip hint="Filter audit logs by category (AUTH, ORDER, INVENTORY, USER, etc.)">
+                <FormControl fullWidth>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    value={categoryFilter}
+                    label="Category"
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">All Categories</MenuItem>
+                    {Object.values(AuditCategory).map(cat => (
+                      <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </HintTooltip>
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Limit</InputLabel>
-                <Select
-                  value={limit}
-                  label="Limit"
-                  onChange={(e) => setLimit(e.target.value)}
-                >
-                  <MenuItem value={25}>Last 25</MenuItem>
-                  <MenuItem value={50}>Last 50</MenuItem>
-                  <MenuItem value={100}>Last 100</MenuItem>
-                  <MenuItem value={500}>Last 500</MenuItem>
-                </Select>
-              </FormControl>
+              <HintTooltip hint="Limit the number of audit log entries displayed (most recent first)">
+                <FormControl fullWidth>
+                  <InputLabel>Limit</InputLabel>
+                  <Select
+                    value={limit}
+                    label="Limit"
+                    onChange={(e) => setLimit(e.target.value)}
+                  >
+                    <MenuItem value={25}>Last 25</MenuItem>
+                    <MenuItem value={50}>Last 50</MenuItem>
+                    <MenuItem value={100}>Last 100</MenuItem>
+                    <MenuItem value={500}>Last 500</MenuItem>
+                  </Select>
+                </FormControl>
+              </HintTooltip>
             </Grid>
           </Grid>
         </CardContent>

@@ -6,6 +6,7 @@ import { LogOut, Calendar } from "lucide-react";
 import { todayStr, brandRed } from "./helpers.js";
 import { logLogout } from "./auditService.js";
 import { getSession } from "./sessionService.js";
+import HintTooltip from "./HintTooltip.jsx";
 
 /**
  * Header for the app
@@ -74,28 +75,30 @@ const Header = ({ name = "Mario", onLogout }) => {
         </Box>
       </Box>
       {/* Logout button */}
-      <Button
-        variant="outlined"
-        color="error"
-        startIcon={<LogOut size={18} />}
-        onClick={handleLogout}
-        sx={{
-          borderRadius: '10px',
-          textTransform: 'none',
-          fontWeight: 600,
-          px: 3,
-          py: 1.25,
-          borderWidth: 1.5,
-          transition: 'all 0.2s ease-in-out',
-          '&:hover': {
+      <HintTooltip hint="Log out of your account and return to the login screen">
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<LogOut size={18} />}
+          onClick={handleLogout}
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 600,
+            px: 3,
+            py: 1.25,
             borderWidth: 1.5,
-            transform: 'translateY(-2px)',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-          },
-        }}
-      >
-        Logout
-      </Button>
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              borderWidth: 1.5,
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+            },
+          }}
+        >
+          Logout
+        </Button>
+      </HintTooltip>
     </Box>
   );
 };

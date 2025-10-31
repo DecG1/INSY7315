@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Box, Card, CardContent, Typography, Divider, Button, FormControl, InputLabel, Select, MenuItem, TextField } from "@mui/material";
 import { FileSpreadsheet } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
+import HintTooltip from "./HintTooltip.jsx";
 import { listRecipes } from "./recipesService.js";
 import { currency } from "./helpers.js";
 
@@ -48,34 +49,40 @@ const CalculatorPage = () => {
         },
       }}
     >
-      <SectionTitle icon={FileSpreadsheet} title="Calculate Recipe Ingredients" />
+      <SectionTitle icon={FileSpreadsheet} title="Calculate Recipe Ingredients" hint="Calculate the total cost of making multiple servings of a recipe based on current ingredient prices" />
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2 }}>
-        <FormControl sx={{ minWidth: 240 }}>
-          <InputLabel>Recipe</InputLabel>
-          <Select label="Recipe" value={sel} onChange={(e) => setSel(e.target.value)} disabled={recipeRows.length === 0}>
-            {recipeRows.map((r) => <MenuItem key={r.id ?? r.name} value={r.name}>{r.name}</MenuItem>)}
-          </Select>
-        </FormControl>
+        <HintTooltip hint="Select which recipe you want to cost">
+          <FormControl sx={{ minWidth: 240 }}>
+            <InputLabel>Recipe</InputLabel>
+            <Select label="Recipe" value={sel} onChange={(e) => setSel(e.target.value)} disabled={recipeRows.length === 0}>
+              {recipeRows.map((r) => <MenuItem key={r.id ?? r.name} value={r.name}>{r.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </HintTooltip>
         {/* Quantity input: keep raw string so it can be empty; type=number still provides numeric keypad & validation */}
-        <TextField
-          label="Quantity"
-          type="number"
-          value={qty}
-          onChange={(e) => {
-            const v = e.target.value;
-            // Allow empty input by storing ""; otherwise store raw string. We don't convert here
-            // to avoid showing 0 when the user clears the field.
-            if (v === "") {
-              setQty("");
-            } else {
-              setQty(v);
-            }
-          }}
-          inputProps={{ min: 0 }}
-          placeholder="Enter quantity"
-        />
+        <HintTooltip hint="Enter how many servings you want to make">
+          <TextField
+            label="Quantity"
+            type="number"
+            value={qty}
+            onChange={(e) => {
+              const v = e.target.value;
+              // Allow empty input by storing ""; otherwise store raw string. We don't convert here
+              // to avoid showing 0 when the user clears the field.
+              if (v === "") {
+                setQty("");
+              } else {
+                setQty(v);
+              }
+            }}
+            inputProps={{ min: 0 }}
+            placeholder="Enter quantity"
+          />
+        </HintTooltip>
         {/* Use default contained style from theme for uniform look across the app */}
-        <Button variant="contained" disabled={recipeRows.length === 0}>Calculate</Button>
+        <HintTooltip hint="Calculate the total cost for the specified quantity">
+          <Button variant="contained" disabled={recipeRows.length === 0}>Calculate</Button>
+        </HintTooltip>
       </Box>
       <Card
         sx={{
