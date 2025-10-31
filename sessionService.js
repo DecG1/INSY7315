@@ -1,9 +1,9 @@
 import { db } from "./db.js"
 
 
-export async function setSession({email, role}){
+export async function setSession({email, role, userId}){
     await db.sessions.clear();
-    return db.sessions.add({email, role, ts:Date.now()});
+    return db.sessions.add({email, role, userId, ts:Date.now()});
 
 }
 

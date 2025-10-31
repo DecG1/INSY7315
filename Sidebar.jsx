@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Typography, Divider, Button, useTheme } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed, TrendingUp } from "lucide-react";
+import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed, TrendingUp, UserCog } from "lucide-react";
 import HintTooltip from "./HintTooltip.jsx"; // Import tooltip for navigation hints
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
 
@@ -46,6 +46,7 @@ const Sidebar = ({ current, setCurrent }) => {
     { key: "notifications", label: "Notifications", icon: Bell, hint: "View alerts for low stock and expiring items" },
     { key: "calculator", label: "Calculator", icon: FileSpreadsheet, hint: "Calculate recipe costs based on quantity" },
     { key: "reports", label: "Reports", icon: BarChart3, hint: "View weekly sales analytics and add manual sales entries" },
+    { key: "users", label: "User Management", icon: UserCog, hint: "Manage user accounts, roles, and passwords (Admin only)" },
     { key: "loyalty", label: "Loyalty", icon: Users, hint: "Customer loyalty program (coming soon)" },
     { key: "settings", label: "Settings", icon: Filter, hint: "Configure app preferences, hints, and notifications" },
   ];
