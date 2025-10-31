@@ -3,8 +3,7 @@
 
 import { db } from "./db.js";
 import { addRecipe } from "./recipesService.js";
-import { addInventoryItem } from "./inventoryService.js";
-import { addSale } from "./analyticsService.js";
+import { addInventory } from "./inventoryService.js";
 
 /**
  * Sample inventory items with realistic pricing and quantities
@@ -290,13 +289,12 @@ export async function seedDatabase() {
     // Seed inventory
     console.log("📦 Seeding inventory items...");
     for (const item of sampleInventory) {
-      await db.inventory.add({
+      await addInventory({
         name: item.name,
-        quantity: item.qty,
+        qty: item.qty,
         unit: item.unit,
         expiry: item.expiry,
         cost: item.cost,
-        category: item.category,
       });
     }
     console.log(`✅ Added ${sampleInventory.length} inventory items`);
@@ -322,12 +320,13 @@ export async function seedDatabase() {
       let totalCost = 0;
       for (const ing of ingredients) {
         const invItem = await db.inventory.get(ing.invId);
-        if (invItem) {
-          totalCost += (invItem.cost / invItem.quantity) * ing.quantity;
+        if (invItem && invItem.ppu) {
+          // Use price per unit (ppu) for accurate cost calculation
+          totalCost += invItem.ppu * ing.quantity;
         }
       }
       
-      await db.recipes.add({
+      await addRecipe({
         name: recipe.name,
         type: recipe.type,
         instructions: recipe.instructions,
