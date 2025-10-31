@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip } from "@mui/material";
+import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip, FormControl, InputLabel, Select, MenuItem, Slider } from "@mui/material";
 import {
-  BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink, TrendingUp, TrendingDown, Trophy, AlertCircle
+  BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink, TrendingUp, TrendingDown, Trophy, AlertCircle, PieChart
 } from "lucide-react";
 
 import MetricCard from "./MetricCard.jsx";
@@ -10,7 +10,7 @@ import StatusChip from "./StatusChip.jsx";
 import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend } from "recharts";
 import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications, getOrderHistory } from "./analyticsService.js";
 import { liveQuery } from "dexie";
 import { db } from "./db.js";
@@ -26,6 +26,11 @@ export default function Dashboard({ onNavigate }) {
   const [period, setPeriod] = useState('weekly'); // Current period: 'weekly', 'monthly', or 'yearly'
   const [notifications, setNotifications] = useState([]); // Recent notifications
   const [orders, setOrders] = useState([]); // Order history for sales analysis
+  
+  // Analytics filters
+  const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // all, 7days, 30days, 90days
+  const [sortBy, setSortBy] = useState('quantity'); // quantity, revenue, frequency
+  const [minQuantity, setMinQuantity] = useState(0); // Minimum quantity threshold
   
   /**
    * Fetch sales data based on selected period
@@ -103,14 +108,39 @@ export default function Dashboard({ onNavigate }) {
   }, [period]); // Re-fetch when period changes
 
   /**
+   * Filter orders based on time period
+   */
+  const filteredOrders = useMemo(() => {
+    if (timePeriodFilter === 'all') return orders;
+
+    const now = new Date();
+    const cutoffDate = new Date();
+    
+    if (timePeriodFilter === '7days') {
+      cutoffDate.setDate(now.getDate() - 7);
+    } else if (timePeriodFilter === '30days') {
+      cutoffDate.setDate(now.getDate() - 30);
+    } else if (timePeriodFilter === '90days') {
+      cutoffDate.setDate(now.getDate() - 90);
+    }
+
+    return orders.filter(order => {
+      const orderDate = new Date(order.timestamp || order.date);
+      return orderDate >= cutoffDate;
+    });
+  }, [orders, timePeriodFilter]);
+
+  /**
    * Analyze sales data to calculate item performance
    * Aggregates all items from orders to identify best and worst sellers
+   * Includes frequency tracking (how many different orders contain the item)
    */
   const salesAnalysis = useMemo(() => {
     const itemMap = new Map();
     let totalQuantity = 0;
+    let totalRevenue = 0;
 
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       if (!order.items || !Array.isArray(order.items)) return;
 
       order.items.forEach(item => {
@@ -120,34 +150,83 @@ export default function Dashboard({ onNavigate }) {
         const itemRevenue = quantity * price;
 
         totalQuantity += quantity;
+        totalRevenue += itemRevenue;
 
         if (itemMap.has(itemName)) {
           const existing = itemMap.get(itemName);
           existing.quantity += quantity;
           existing.revenue += itemRevenue;
+          existing.frequency += 1; // Count how many times item appears in orders
         } else {
           itemMap.set(itemName, {
             name: itemName,
             quantity: quantity,
             revenue: itemRevenue,
+            frequency: 1, // First occurrence
           });
         }
       });
     });
 
-    const itemStats = Array.from(itemMap.values()).map(item => ({
-      ...item,
-      quantityPercent: totalQuantity > 0 ? (item.quantity / totalQuantity) * 100 : 0,
-    }));
+    // Filter by minimum quantity
+    let itemStats = Array.from(itemMap.values())
+      .filter(item => item.quantity >= minQuantity)
+      .map(item => ({
+        ...item,
+        quantityPercent: totalQuantity > 0 ? (item.quantity / totalQuantity) * 100 : 0,
+        revenuePercent: totalRevenue > 0 ? (item.revenue / totalRevenue) * 100 : 0,
+        avgQuantityPerOrder: item.quantity / item.frequency,
+      }));
 
-    itemStats.sort((a, b) => b.quantity - a.quantity);
+    // Sort based on selected criteria
+    if (sortBy === 'revenue') {
+      itemStats.sort((a, b) => b.revenue - a.revenue);
+    } else if (sortBy === 'frequency') {
+      itemStats.sort((a, b) => b.frequency - a.frequency);
+    } else {
+      itemStats.sort((a, b) => b.quantity - a.quantity);
+    }
 
     return {
       itemStats,
       bestSellers: itemStats.slice(0, 5),
       worstSellers: itemStats.slice(-5).reverse(),
+      totalQuantity,
+      totalRevenue,
     };
-  }, [orders]);
+  }, [filteredOrders, minQuantity, sortBy]);
+
+  /**
+   * Prepare data for pie chart visualization
+   * Top 5 items get individual slices, rest grouped as "Other"
+   */
+  const pieChartData = useMemo(() => {
+    if (salesAnalysis.itemStats.length === 0) return [];
+
+    const topItems = salesAnalysis.itemStats.slice(0, 5);
+    const otherItems = salesAnalysis.itemStats.slice(5);
+    
+    const otherTotal = otherItems.reduce((sum, item) => sum + item.quantity, 0);
+    
+    const data = topItems.map(item => ({
+      name: item.name,
+      value: item.quantity,
+      percent: item.quantityPercent,
+    }));
+
+    if (otherTotal > 0) {
+      data.push({
+        name: 'Other Items',
+        value: otherTotal,
+        percent: salesAnalysis.totalQuantity > 0 ? (otherTotal / salesAnalysis.totalQuantity) * 100 : 0,
+      });
+    }
+
+    return data;
+  }, [salesAnalysis]);
+
+  // Colors for pie chart
+  const PIE_COLORS = ['#4caf50', '#2196f3', '#ff9800', '#9c27b0', '#f44336', '#607d8b'];
 
   // Live update Expiring Soon whenever inventory changes
   useEffect(() => {
@@ -290,6 +369,109 @@ export default function Dashboard({ onNavigate }) {
         </CardContent>
       </Card>
 
+      {/* Sales Analytics: Filters and Pie Chart */}
+      {salesAnalysis.itemStats.length > 0 && (
+        <>
+          {/* Filter Controls */}
+          <Card sx={{ borderRadius: '12px' }}>
+            <CardContent sx={{ p: 3 }}>
+              <SectionTitle
+                icon={PieChart}
+                title="Sales Analytics"
+                hint="Analyze item performance with advanced filtering by time period, sales frequency, and quantity thresholds"
+              />
+              
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <HintTooltip hint="Filter sales data by time period">
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Time Period</InputLabel>
+                      <Select
+                        value={timePeriodFilter}
+                        label="Time Period"
+                        onChange={(e) => setTimePeriodFilter(e.target.value)}
+                      >
+                        <MenuItem value="all">All Time</MenuItem>
+                        <MenuItem value="7days">Last 7 Days</MenuItem>
+                        <MenuItem value="30days">Last 30 Days</MenuItem>
+                        <MenuItem value="90days">Last 90 Days</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </HintTooltip>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={3}>
+                  <HintTooltip hint="Sort items by quantity sold, revenue generated, or order frequency">
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Sort By</InputLabel>
+                      <Select
+                        value={sortBy}
+                        label="Sort By"
+                        onChange={(e) => setSortBy(e.target.value)}
+                      >
+                        <MenuItem value="quantity">Quantity Sold</MenuItem>
+                        <MenuItem value="revenue">Revenue</MenuItem>
+                        <MenuItem value="frequency">Order Frequency</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </HintTooltip>
+                </Grid>
+
+                <Grid item xs={12} sm={12} md={6}>
+                  <HintTooltip hint="Set minimum quantity threshold to filter out low-volume items">
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" gutterBottom>
+                        Min Quantity: {minQuantity}
+                      </Typography>
+                      <Slider
+                        value={minQuantity}
+                        onChange={(e, newValue) => setMinQuantity(newValue)}
+                        min={0}
+                        max={50}
+                        step={5}
+                        marks={[
+                          { value: 0, label: '0' },
+                          { value: 25, label: '25' },
+                          { value: 50, label: '50' },
+                        ]}
+                        valueLabelDisplay="auto"
+                        sx={{ mt: 1 }}
+                      />
+                    </Box>
+                  </HintTooltip>
+                </Grid>
+              </Grid>
+
+              {/* Pie Chart */}
+              {pieChartData.length > 0 && (
+                <Box sx={{ height: 350, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={pieChartData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${percent.toFixed(1)}%`}
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {pieChartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `${value} units`} />
+                      <Legend />
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
       {/* Sales Analytics: Best & Worst Sellers */}
       {salesAnalysis.itemStats.length > 0 && (
         <Grid container spacing={3}>
@@ -310,6 +492,11 @@ export default function Dashboard({ onNavigate }) {
                       <TableCell>Item</TableCell>
                       <TableCell align="right">Qty</TableCell>
                       <TableCell align="right">Revenue</TableCell>
+                      <TableCell align="right">
+                        <HintTooltip hint="Number of orders containing this item">
+                          <span>Orders</span>
+                        </HintTooltip>
+                      </TableCell>
                       <TableCell align="right">%</TableCell>
                     </TableRow>
                   </TableHead>
@@ -343,6 +530,9 @@ export default function Dashboard({ onNavigate }) {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
+                          <Chip label={item.frequency} size="small" color="primary" variant="outlined" />
+                        </TableCell>
+                        <TableCell align="right">
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
                             <Typography variant="body2">{item.quantityPercent.toFixed(1)}%</Typography>
                             <TrendingUp size={14} color="#4caf50" />
@@ -373,6 +563,11 @@ export default function Dashboard({ onNavigate }) {
                       <TableCell>Item</TableCell>
                       <TableCell align="right">Qty</TableCell>
                       <TableCell align="right">Revenue</TableCell>
+                      <TableCell align="right">
+                        <HintTooltip hint="Number of orders containing this item">
+                          <span>Orders</span>
+                        </HintTooltip>
+                      </TableCell>
                       <TableCell align="right">%</TableCell>
                     </TableRow>
                   </TableHead>
@@ -391,6 +586,9 @@ export default function Dashboard({ onNavigate }) {
                           <Typography variant="body2" color="warning.main">
                             {currency(item.revenue)}
                           </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Chip label={item.frequency} size="small" color="warning" variant="outlined" />
                         </TableCell>
                         <TableCell align="right">
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
