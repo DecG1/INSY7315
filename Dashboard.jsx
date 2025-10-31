@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip, FormControl, InputLabel, Select, MenuItem, Slider, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip, FormControl, InputLabel, Select, MenuItem, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from "@mui/material";
 import {
   BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink, TrendingUp, TrendingDown, Trophy, AlertCircle, PieChart
 } from "lucide-react";
@@ -587,104 +587,109 @@ export default function Dashboard({ onNavigate }) {
         </DialogActions>
       </Dialog>
 
-      {/* Financial overview chart with period selector */}
-      <Card
-        sx={{
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(226, 232, 240, 0.8)',
-        }}
-      >
-        <CardContent sx={{ p: 4 }}>
-          <SectionTitle 
-            icon={BarChart3} 
-            title="Financial Overview"
-            action={
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                {/* Period selector toggle buttons */}
-                <HintTooltip title="Switch between weekly, monthly, or yearly revenue view">
-                  <ToggleButtonGroup
-                    value={period}
-                    exclusive
-                    onChange={handlePeriodChange}
-                    size="small"
-                    sx={{
-                      '& .MuiToggleButton-root': {
-                        borderRadius: '10px',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        px: 2.5,
-                        py: 0.75,
-                        fontSize: '0.875rem',
-                        border: '1.5px solid #e2e8f0',
-                        transition: 'all 0.2s ease-in-out',
-                        '&.Mui-selected': {
-                          backgroundColor: '#8b0000',
-                          color: '#fff',
-                          borderColor: '#8b0000',
-                          '&:hover': {
-                            backgroundColor: '#6f0000',
+      {/* Financial overview chart and Sales Analytics side-by-side */}
+      <Grid container spacing={3}>
+        {/* Financial Overview Chart - Left Side */}
+        <Grid item xs={12} lg={7}>
+          <Card
+            sx={{
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              height: '100%',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <SectionTitle 
+                icon={BarChart3} 
+                title="Financial Overview"
+                action={
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {/* Period selector toggle buttons */}
+                    <HintTooltip title="Switch between weekly, monthly, or yearly revenue view">
+                      <ToggleButtonGroup
+                        value={period}
+                        exclusive
+                        onChange={handlePeriodChange}
+                        size="small"
+                        sx={{
+                          '& .MuiToggleButton-root': {
+                            borderRadius: '10px',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            px: 2.5,
+                            py: 0.75,
+                            fontSize: '0.875rem',
+                            border: '1.5px solid #e2e8f0',
+                            transition: 'all 0.2s ease-in-out',
+                            '&.Mui-selected': {
+                              backgroundColor: '#8b0000',
+                              color: '#fff',
+                              borderColor: '#8b0000',
+                              '&:hover': {
+                                backgroundColor: '#6f0000',
+                              },
+                            },
                           },
-                        },
-                      },
-                    }}
-                  >
-                    <ToggleButton value="weekly">Weekly</ToggleButton>
-                    <ToggleButton value="monthly">Monthly</ToggleButton>
-                    <ToggleButton value="yearly">Yearly</ToggleButton>
-                  </ToggleButtonGroup>
-                </HintTooltip>
-                
-                {/* Refresh button */}
-                <HintTooltip title="Refresh all dashboard metrics and charts to show the latest data from saved dockets and sales">
-                  <Button 
-                    variant="outlined" 
-                    size="small" 
-                    startIcon={<RefreshCw size={16} />} 
-                    onClick={fetchData}
-                    disabled={isRefreshing}
-                    sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
-                  >
-                    {isRefreshing ? 'Refreshing…' : 'Refresh'}
-                  </Button>
-                </HintTooltip>
-              </Box>
-            }
-          />
-          {chartData.length > 0 ? (
-            <Box sx={{ height: 256 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip formatter={(v) => currency(v)} />
-                  <Line type="monotone" dataKey="sales" name="Sales" stroke="#8b0000" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="costs" name="Costs" stroke="#ffcdd2" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </Box>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No sales data yet. Add sales entries to populate the chart.
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
+                        }}
+                      >
+                        <ToggleButton value="weekly">Weekly</ToggleButton>
+                        <ToggleButton value="monthly">Monthly</ToggleButton>
+                        <ToggleButton value="yearly">Yearly</ToggleButton>
+                      </ToggleButtonGroup>
+                    </HintTooltip>
+                    
+                    {/* Refresh button */}
+                    <HintTooltip title="Refresh all dashboard metrics and charts to show the latest data from saved dockets and sales">
+                      <Button 
+                        variant="outlined" 
+                        size="small" 
+                        startIcon={<RefreshCw size={16} />} 
+                        onClick={fetchData}
+                        disabled={isRefreshing}
+                        sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                      >
+                        {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                      </Button>
+                    </HintTooltip>
+                  </Box>
+                }
+              />
+              {chartData.length > 0 ? (
+                <Box sx={{ height: 256 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <Tooltip formatter={(v) => currency(v)} />
+                      <Line type="monotone" dataKey="sales" name="Sales" stroke="#8b0000" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="costs" name="Costs" stroke="#ffcdd2" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  No sales data yet. Add sales entries to populate the chart.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
-      {/* Sales Analytics: Filters and Pie Chart */}
-      <>
-          {/* Filter Controls */}
-          <Card sx={{ borderRadius: '12px' }}>
+        {/* Sales Analytics - Right Side */}
+        <Grid item xs={12} lg={5}>
+          <Card sx={{ borderRadius: '12px', height: '100%' }}>
             <CardContent sx={{ p: 3 }}>
               <SectionTitle
                 icon={PieChart}
                 title="Sales Analytics"
-                hint="Analyze item performance with advanced filtering by time period, sales frequency, and quantity thresholds"
+                hint="Visual breakdown and performance metrics for top and slow-moving items"
               />
               
+              {/* Filters */}
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6}>
                   <HintTooltip hint="Filter sales data by time period">
                     <FormControl fullWidth size="small">
                       <InputLabel>Time Period</InputLabel>
@@ -702,7 +707,7 @@ export default function Dashboard({ onNavigate }) {
                   </HintTooltip>
                 </Grid>
 
-                <Grid item xs={12} sm={6} md={3}>
+                <Grid item xs={12} sm={6}>
                   <HintTooltip hint="Sort items by quantity sold, revenue generated, or order frequency">
                     <FormControl fullWidth size="small">
                       <InputLabel>Sort By</InputLabel>
@@ -719,7 +724,7 @@ export default function Dashboard({ onNavigate }) {
                   </HintTooltip>
                 </Grid>
 
-                <Grid item xs={12} sm={12} md={6}>
+                <Grid item xs={12}>
                   <HintTooltip hint="Set minimum quantity threshold to filter out low-volume items">
                     <Box>
                       <Typography variant="caption" color="text.secondary" gutterBottom>
@@ -745,8 +750,8 @@ export default function Dashboard({ onNavigate }) {
               </Grid>
 
               {/* Pie Chart */}
-              {pieChartData.length > 0 && (
-                <Box sx={{ height: 350, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {pieChartData.length > 0 ? (
+                <Box sx={{ height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
@@ -755,7 +760,7 @@ export default function Dashboard({ onNavigate }) {
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name}: ${percent.toFixed(1)}%`}
-                        outerRadius={120}
+                        outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -768,144 +773,102 @@ export default function Dashboard({ onNavigate }) {
                     </RechartsPieChart>
                   </ResponsiveContainer>
                 </Box>
+              ) : (
+                <Box sx={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" textAlign="center">
+                    No sales data available.<br />Save orders from the Order Scanner to see distribution.
+                  </Typography>
+                </Box>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              {/* Top Sellers & Slow Movers - Compact View */}
+              {salesAnalysis.itemStats.length > 0 && (
+                <Grid container spacing={2}>
+                  {/* Top Sellers */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                      <Trophy size={18} color="#4caf50" />
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        Top Sellers
+                      </Typography>
+                      <Chip label={salesAnalysis.bestSellers.length} color="success" size="small" />
+                    </Box>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ py: 0.75 }}>Item</TableCell>
+                          <TableCell align="right" sx={{ py: 0.75 }}>Qty</TableCell>
+                          <TableCell align="right" sx={{ py: 0.75 }}>Rev</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {salesAnalysis.bestSellers.slice(0, 3).map((item, idx) => (
+                          <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(76, 175, 80, 0.05)' : 'transparent' }}>
+                            <TableCell sx={{ py: 0.75 }}>
+                              <Typography variant="body2" fontWeight={idx === 0 ? 600 : 400} noWrap>
+                                {item.name}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.75 }}>
+                              <Typography variant="body2">{item.quantity}</Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.75 }}>
+                              <Typography variant="body2" color="success.main">
+                                {currency(item.revenue)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Grid>
+
+                  {/* Slow Movers */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, mt: 2 }}>
+                      <AlertCircle size={18} color="#ff9800" />
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        Slow Movers
+                      </Typography>
+                      <Chip label={salesAnalysis.worstSellers.length} color="warning" size="small" />
+                    </Box>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ py: 0.75 }}>Item</TableCell>
+                          <TableCell align="right" sx={{ py: 0.75 }}>Qty</TableCell>
+                          <TableCell align="right" sx={{ py: 0.75 }}>Rev</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {salesAnalysis.worstSellers.slice(0, 3).map((item, idx) => (
+                          <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(255, 152, 0, 0.05)' : 'transparent' }}>
+                            <TableCell sx={{ py: 0.75 }}>
+                              <Typography variant="body2" fontWeight={idx === 0 ? 600 : 400} noWrap>
+                                {item.name}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.75 }}>
+                              <Typography variant="body2">{item.quantity}</Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.75 }}>
+                              <Typography variant="body2" color="warning.main">
+                                {currency(item.revenue)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </Grid>
+                </Grid>
               )}
             </CardContent>
           </Card>
-        </>
-
-      {/* Sales Analytics: Best & Worst Sellers */}
-      {salesAnalysis.itemStats.length > 0 && (
-        <Grid container spacing={3}>
-          {/* Best Sellers */}
-          <Grid item xs={12} md={6}>
-            <Card sx={{ borderRadius: '12px' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <Trophy size={20} color="#4caf50" />
-                  <Typography variant="h6" fontWeight={700}>
-                    Top Sellers
-                  </Typography>
-                  <Chip label={`Top ${salesAnalysis.bestSellers.length}`} color="success" size="small" />
-                </Box>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Item</TableCell>
-                      <TableCell align="right">Qty</TableCell>
-                      <TableCell align="right">Revenue</TableCell>
-                      <TableCell align="right">
-                        <HintTooltip hint="Number of orders containing this item">
-                          <span>Orders</span>
-                        </HintTooltip>
-                      </TableCell>
-                      <TableCell align="right">%</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {salesAnalysis.bestSellers.map((item, idx) => (
-                      <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(76, 175, 80, 0.05)' : 'transparent' }}>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Chip 
-                              label={idx + 1} 
-                              size="small" 
-                              sx={{ 
-                                width: 28, 
-                                height: 28, 
-                                backgroundColor: idx === 0 ? 'success.main' : 'grey.300',
-                                color: idx === 0 ? 'white' : 'text.primary',
-                                fontWeight: 'bold'
-                              }} 
-                            />
-                            <Typography variant="body2" fontWeight={idx === 0 ? 700 : 400}>
-                              {item.name}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2">{item.quantity}</Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" color="success.main">
-                            {currency(item.revenue)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Chip label={item.frequency} size="small" color="primary" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                            <Typography variant="body2">{item.quantityPercent.toFixed(1)}%</Typography>
-                            <TrendingUp size={14} color="#4caf50" />
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Worst Sellers */}
-          <Grid item xs={12} md={6}>
-            <Card sx={{ borderRadius: '12px' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <AlertCircle size={20} color="#ff9800" />
-                  <Typography variant="h6" fontWeight={700}>
-                    Slow Movers
-                  </Typography>
-                  <Chip label={`Bottom ${salesAnalysis.worstSellers.length}`} color="warning" size="small" />
-                </Box>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Item</TableCell>
-                      <TableCell align="right">Qty</TableCell>
-                      <TableCell align="right">Revenue</TableCell>
-                      <TableCell align="right">
-                        <HintTooltip hint="Number of orders containing this item">
-                          <span>Orders</span>
-                        </HintTooltip>
-                      </TableCell>
-                      <TableCell align="right">%</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {salesAnalysis.worstSellers.map((item, idx) => (
-                      <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(255, 152, 0, 0.05)' : 'transparent' }}>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={idx === 0 ? 700 : 400}>
-                            {item.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2">{item.quantity}</Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" color="warning.main">
-                            {currency(item.revenue)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Chip label={item.frequency} size="small" color="warning" variant="outlined" />
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-                            <Typography variant="body2">{item.quantityPercent.toFixed(1)}%</Typography>
-                            <TrendingDown size={14} color="#ff9800" />
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </Grid>
         </Grid>
-      )}
+      </Grid>
 
       {/* Notifications Panel */}
       <Card
