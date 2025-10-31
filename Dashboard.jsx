@@ -14,6 +14,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications, getOrderHistory } from "./analyticsService.js";
 import { liveQuery } from "dexie";
 import { db } from "./db.js";
+import { quickSeed } from "./seedData.js";
 
 export default function Dashboard({ onNavigate }) {
   const [invCount, setInvCount] = useState(0);
@@ -32,6 +33,7 @@ export default function Dashboard({ onNavigate }) {
   const [showExpiringDialog, setShowExpiringDialog] = useState(false);
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState('daily');
+  const [isSeeding, setIsSeeding] = useState(false);
   
   // Analytics filters
   const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // all, 7days, 30days, 90days
@@ -265,6 +267,23 @@ export default function Dashboard({ onNavigate }) {
     }
   };
 
+  /**
+   * Handle seeding the database with sample data
+   */
+  const handleSeedData = async () => {
+    if (confirm('This will clear all existing data and populate the database with sample meals, ingredients, and orders. Continue?')) {
+      setIsSeeding(true);
+      try {
+        await quickSeed();
+      } catch (error) {
+        console.error('Error seeding database:', error);
+        alert('Failed to seed database. Check console for details.');
+      } finally {
+        setIsSeeding(false);
+      }
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -276,6 +295,31 @@ export default function Dashboard({ onNavigate }) {
       }}
     >
       <Grid container spacing={3}>
+        {/* Seed Data Button */}
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: -1 }}>
+            <Button
+              variant="outlined"
+              onClick={handleSeedData}
+              disabled={isSeeding}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                borderColor: 'rgba(139, 0, 0, 0.3)',
+                color: '#8b0000',
+                '&:hover': {
+                  borderColor: '#8b0000',
+                  backgroundColor: 'rgba(139, 0, 0, 0.05)',
+                },
+              }}
+            >
+              {isSeeding ? 'Seeding Database...' : '🌱 Seed Sample Data'}
+            </Button>
+          </Box>
+        </Grid>
+        
         {/* Metric cards */}
         <Grid item xs={12} md={3}>
           <MetricCard 
