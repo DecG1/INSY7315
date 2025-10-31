@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, Divider, Button, useTheme } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed, TrendingUp } from "lucide-react";
+import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed, TrendingUp, UserCog, History } from "lucide-react";
 import HintTooltip from "./HintTooltip.jsx"; // Import tooltip for navigation hints
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
+import { getSession } from "./sessionService.js";
 
 const brandRed = "#8b0000";
 
@@ -34,11 +35,22 @@ const SidebarButton = styled(Button)(({ theme, selected }) => ({
  * @param {function} setCurrent - Function to change active route
  */
 const Sidebar = ({ current, setCurrent }) => {
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const session = await getSession();
+      if (mounted) setRole(session?.role ?? null);
+    })();
+    return () => { mounted = false; };
+  }, []);
+
   // Navigation items with labels, icons, and hint text
   const items = [
     { key: "dashboard", label: "Dashboard", icon: BarChart3, hint: "View key metrics, orders today, and weekly financial overview" },
     { key: "inventory", label: "Inventory", icon: Boxes, hint: "Manage stock items, quantities, and expiry dates" },
-  { key: "scanner", label: "Order Scanner", icon: QrCode, hint: "Enter customer orders manually and calculate gratuity" },
+    { key: "scanner", label: "Order Scanner", icon: QrCode, hint: "Enter customer orders manually and calculate gratuity" },
     { key: "recipes", label: "Recipes", icon: ChefHat, hint: "Manage recipes and track ingredient usage" },
     { key: "pricing", label: "Ingredient Pricing", icon: DollarSign, hint: "Set and update ingredient costs for accurate pricing" },
     { key: "menubuilder", label: "Menu Builder", icon: UtensilsCrossed, hint: "Smart menu suggestions based on available inventory" },
@@ -46,9 +58,14 @@ const Sidebar = ({ current, setCurrent }) => {
     { key: "notifications", label: "Notifications", icon: Bell, hint: "View alerts for low stock and expiring items" },
     { key: "calculator", label: "Calculator", icon: FileSpreadsheet, hint: "Calculate recipe costs based on quantity" },
     { key: "reports", label: "Reports", icon: BarChart3, hint: "View weekly sales analytics and add manual sales entries" },
+    { key: "auditlogs", label: "Audit Logs", icon: History, hint: "Review who did what and when (Admin/Manager)", guard: (r) => r === 'admin' || r === 'manager' },
+    { key: "users", label: "User Management", icon: UserCog, hint: "Manage user accounts, roles, and passwords (Admin only)", guard: (r) => r === 'admin' },
     { key: "loyalty", label: "Loyalty", icon: Users, hint: "Customer loyalty program (coming soon)" },
     { key: "settings", label: "Settings", icon: Filter, hint: "Configure app preferences, hints, and notifications" },
   ];
+
+  // Apply role-based filtering; default to hiding guarded items until role is known
+  const filtered = items.filter(it => !it.guard || it.guard(role));
   
   // Access theme to adapt sidebar styling for dark mode
   const theme = useTheme();
@@ -74,7 +91,7 @@ const Sidebar = ({ current, setCurrent }) => {
         <Logo size={48} />
       </Box>
       {/* Render navigation items with hint tooltips */}
-      {items.map((it) => (
+      {filtered.map((it) => (
         <HintTooltip key={it.key} title={it.hint} placement="right">
           <SidebarButton selected={current === it.key ? 1 : 0} onClick={() => setCurrent(it.key)} startIcon={<it.icon size={18} />}>{it.label}</SidebarButton>
         </HintTooltip>

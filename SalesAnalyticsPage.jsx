@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
   import { TrendingUp, TrendingDown, BarChart3, RefreshCw, Trophy, AlertCircle } from "lucide-react";
 import SectionTitle from "./SectionTitle";
+import { currency } from "./helpers.js";
 import { getOrderHistory } from "./analyticsService";
 import HintTooltip from "./HintTooltip";
 
@@ -197,9 +198,7 @@ export default function SalesAnalyticsPage() {
   /**
    * Format currency values
    */
-  const formatCurrency = (amount) => {
-    return `$${amount.toFixed(2)}`;
-  };
+  const formatCurrency = (amount) => currency(amount);
 
   if (loading) {
     return (
