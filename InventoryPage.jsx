@@ -186,8 +186,8 @@ export default function InventoryPage() {
               <TableCell>Quantity</TableCell>
               <TableCell>Unit</TableCell>
               <TableCell>Expiry Date</TableCell>
-              <TableCell>Unit Price (ZAR)</TableCell> {/* derived */}
-              <TableCell>Total Cost (ZAR)</TableCell> {/* as entered */}
+              <TableCell>Unit Price (ZAR)</TableCell>
+              <TableCell>Total Cost (ZAR)</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>

@@ -370,8 +370,7 @@ export default function Dashboard({ onNavigate }) {
       </Card>
 
       {/* Sales Analytics: Filters and Pie Chart */}
-      {salesAnalysis.itemStats.length > 0 && (
-        <>
+      <>
           {/* Filter Controls */}
           <Card sx={{ borderRadius: '12px' }}>
             <CardContent sx={{ p: 3 }}>
@@ -470,7 +469,6 @@ export default function Dashboard({ onNavigate }) {
             </CardContent>
           </Card>
         </>
-      )}
 
       {/* Sales Analytics: Best & Worst Sellers */}
       {salesAnalysis.itemStats.length > 0 && (
