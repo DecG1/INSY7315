@@ -30,6 +30,8 @@ export default function Dashboard({ onNavigate }) {
   const [inventoryList, setInventoryList] = useState([]);
   const [showInventoryDialog, setShowInventoryDialog] = useState(false);
   const [showExpiringDialog, setShowExpiringDialog] = useState(false);
+  const [showRevenueDialog, setShowRevenueDialog] = useState(false);
+  const [revenuePeriod, setRevenuePeriod] = useState('daily');
   
   // Analytics filters
   const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // all, 7days, 30days, 90days
@@ -306,7 +308,13 @@ export default function Dashboard({ onNavigate }) {
           />
         </Grid>
         <Grid item xs={12} md={3}>
-          <MetricCard title="Daily Revenue" value={currency(revenueToday)} note="From local sales table" icon={DollarSign} />
+          <MetricCard 
+            title="Daily Revenue" 
+            value={currency(revenueToday)} 
+            note="From local sales table" 
+            icon={DollarSign}
+            onClick={() => { setRevenuePeriod('daily'); setShowRevenueDialog(true); }}
+          />
         </Grid>
       </Grid>
 
@@ -366,6 +374,131 @@ export default function Dashboard({ onNavigate }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowOrdersDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Revenue Details Dialog */}
+      <Dialog open={showRevenueDialog} onClose={() => setShowRevenueDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Revenue Details</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ mb: 2 }}>
+            <ToggleButtonGroup
+              color="primary"
+              size="small"
+              value={revenuePeriod}
+              exclusive
+              onChange={(e, v) => v && setRevenuePeriod(v)}
+            >
+              <ToggleButton value="daily">Daily</ToggleButton>
+              <ToggleButton value="weekly">Weekly</ToggleButton>
+              <ToggleButton value="monthly">Monthly</ToggleButton>
+              <ToggleButton value="yearly">Yearly</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {(() => {
+            const today = new Date();
+            const ordersList = orders || [];
+
+            if (revenuePeriod === 'daily') {
+              const todayStr = today.toDateString();
+              const todays = ordersList.filter(o => new Date(o.date || o.timestamp).toDateString() === todayStr);
+              const total = todays.reduce((s, o) => s + (Number(o.amount) || 0), 0);
+              return (
+                <>
+                  <Typography variant="subtitle2" sx={{ mb: 1 }}>Total: {currency(total)}</Typography>
+                  {todays.length === 0 ? (
+                    <Typography color="text.secondary">No sales recorded today.</Typography>
+                  ) : (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Time</TableCell>
+                          <TableCell align="right">Amount</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {todays.map((o, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{new Date(o.date || o.timestamp).toLocaleTimeString()}</TableCell>
+                            <TableCell align="right">{currency(Number(o.amount) || 0)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </>
+              );
+            }
+
+            // Helper to init buckets
+            const range = [];
+            if (revenuePeriod === 'weekly') {
+              const start = new Date(today);
+              start.setDate(today.getDate() - 6);
+              start.setHours(0,0,0,0);
+              for (let i = 0; i < 7; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                range.push({ key: d.toDateString(), label: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()], sales: 0 });
+              }
+            } else if (revenuePeriod === 'monthly') {
+              const start = new Date(today.getFullYear(), today.getMonth(), 1);
+              const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+              for (let i = 1; i <= daysInMonth; i++) {
+                range.push({ key: new Date(today.getFullYear(), today.getMonth(), i).toDateString(), label: String(i), sales: 0 });
+              }
+            } else if (revenuePeriod === 'yearly') {
+              const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+              for (let i = 0; i < 12; i++) {
+                range.push({ key: i, label: monthNames[i], sales: 0 });
+              }
+            }
+
+            // Aggregate
+            ordersList.forEach(o => {
+              const d = new Date(o.date || o.timestamp);
+              if (revenuePeriod === 'weekly') {
+                const key = new Date(d.toDateString()).toDateString();
+                const bucket = range.find(b => b.key === key);
+                if (bucket) bucket.sales += Number(o.amount) || 0;
+              } else if (revenuePeriod === 'monthly') {
+                const key = new Date(d.toDateString()).toDateString();
+                const bucket = range.find(b => b.key === key);
+                if (bucket) bucket.sales += Number(o.amount) || 0;
+              } else if (revenuePeriod === 'yearly') {
+                const idx = d.getMonth();
+                const bucket = range.find(b => b.key === idx);
+                if (bucket) bucket.sales += Number(o.amount) || 0;
+              }
+            });
+
+            const total = range.reduce((s, b) => s + b.sales, 0);
+            return (
+              <>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>Total: {currency(total)}</Typography>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{revenuePeriod === 'yearly' ? 'Month' : revenuePeriod === 'monthly' ? 'Day' : 'Day'}</TableCell>
+                      <TableCell align="right">Sales</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {range.map((b, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{b.label}</TableCell>
+                        <TableCell align="right">{currency(b.sales)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowRevenueDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
