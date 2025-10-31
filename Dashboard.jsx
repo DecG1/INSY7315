@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton } from "@mui/material";
+import React, { useEffect, useState, useMemo } from "react";
+import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip } from "@mui/material";
 import {
-  BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink
+  BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink, TrendingUp, TrendingDown, Trophy, AlertCircle
 } from "lucide-react";
 
 import MetricCard from "./MetricCard.jsx";
@@ -11,7 +11,7 @@ import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications } from "./analyticsService.js";
+import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications, getOrderHistory } from "./analyticsService.js";
 import { liveQuery } from "dexie";
 import { db } from "./db.js";
 
@@ -25,6 +25,7 @@ export default function Dashboard({ onNavigate }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [period, setPeriod] = useState('weekly'); // Current period: 'weekly', 'monthly', or 'yearly'
   const [notifications, setNotifications] = useState([]); // Recent notifications
+  const [orders, setOrders] = useState([]); // Order history for sales analysis
   
   /**
    * Fetch sales data based on selected period
@@ -51,13 +52,14 @@ export default function Dashboard({ onNavigate }) {
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [ic, rc, salesData, ot, es, notifs] = await Promise.all([
+      const [ic, rc, salesData, ot, es, notifs, orderHistory] = await Promise.all([
         countInventory(),
         countRecipes(),
         fetchSalesData(period), // Fetch sales for current period
         countOrdersToday(),
         countExpiringSoon(7), // items expiring within next 7 days
         listNotifications(), // Fetch recent notifications
+        getOrderHistory(), // Fetch order history for analytics
       ]);
       setInvCount(ic);
       setRecipeCount(rc);
@@ -66,6 +68,7 @@ export default function Dashboard({ onNavigate }) {
       setOrdersToday(ot);
       setExpiringSoon(es);
       setNotifications(notifs.slice(0, 5)); // Keep only 5 most recent
+      setOrders(orderHistory || []); // Store order history
       
       // Calculate today's revenue based on period context
       // For weekly: find today's day of week (Sun-Sat)
@@ -98,6 +101,53 @@ export default function Dashboard({ onNavigate }) {
   useEffect(() => {
     fetchData();
   }, [period]); // Re-fetch when period changes
+
+  /**
+   * Analyze sales data to calculate item performance
+   * Aggregates all items from orders to identify best and worst sellers
+   */
+  const salesAnalysis = useMemo(() => {
+    const itemMap = new Map();
+    let totalQuantity = 0;
+
+    orders.forEach(order => {
+      if (!order.items || !Array.isArray(order.items)) return;
+
+      order.items.forEach(item => {
+        const itemName = item.name || item.item || "Unknown Item";
+        const quantity = Number(item.quantity) || 0;
+        const price = Number(item.price) || 0;
+        const itemRevenue = quantity * price;
+
+        totalQuantity += quantity;
+
+        if (itemMap.has(itemName)) {
+          const existing = itemMap.get(itemName);
+          existing.quantity += quantity;
+          existing.revenue += itemRevenue;
+        } else {
+          itemMap.set(itemName, {
+            name: itemName,
+            quantity: quantity,
+            revenue: itemRevenue,
+          });
+        }
+      });
+    });
+
+    const itemStats = Array.from(itemMap.values()).map(item => ({
+      ...item,
+      quantityPercent: totalQuantity > 0 ? (item.quantity / totalQuantity) * 100 : 0,
+    }));
+
+    itemStats.sort((a, b) => b.quantity - a.quantity);
+
+    return {
+      itemStats,
+      bestSellers: itemStats.slice(0, 5),
+      worstSellers: itemStats.slice(-5).reverse(),
+    };
+  }, [orders]);
 
   // Live update Expiring Soon whenever inventory changes
   useEffect(() => {
@@ -239,6 +289,124 @@ export default function Dashboard({ onNavigate }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Sales Analytics: Best & Worst Sellers */}
+      {salesAnalysis.itemStats.length > 0 && (
+        <Grid container spacing={3}>
+          {/* Best Sellers */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ borderRadius: '12px' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <Trophy size={20} color="#4caf50" />
+                  <Typography variant="h6" fontWeight={700}>
+                    Top Sellers
+                  </Typography>
+                  <Chip label={`Top ${salesAnalysis.bestSellers.length}`} color="success" size="small" />
+                </Box>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Item</TableCell>
+                      <TableCell align="right">Qty</TableCell>
+                      <TableCell align="right">Revenue</TableCell>
+                      <TableCell align="right">%</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {salesAnalysis.bestSellers.map((item, idx) => (
+                      <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(76, 175, 80, 0.05)' : 'transparent' }}>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Chip 
+                              label={idx + 1} 
+                              size="small" 
+                              sx={{ 
+                                width: 28, 
+                                height: 28, 
+                                backgroundColor: idx === 0 ? 'success.main' : 'grey.300',
+                                color: idx === 0 ? 'white' : 'text.primary',
+                                fontWeight: 'bold'
+                              }} 
+                            />
+                            <Typography variant="body2" fontWeight={idx === 0 ? 700 : 400}>
+                              {item.name}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2">{item.quantity}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="success.main">
+                            {currency(item.revenue)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                            <Typography variant="body2">{item.quantityPercent.toFixed(1)}%</Typography>
+                            <TrendingUp size={14} color="#4caf50" />
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Worst Sellers */}
+          <Grid item xs={12} md={6}>
+            <Card sx={{ borderRadius: '12px' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                  <AlertCircle size={20} color="#ff9800" />
+                  <Typography variant="h6" fontWeight={700}>
+                    Slow Movers
+                  </Typography>
+                  <Chip label={`Bottom ${salesAnalysis.worstSellers.length}`} color="warning" size="small" />
+                </Box>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Item</TableCell>
+                      <TableCell align="right">Qty</TableCell>
+                      <TableCell align="right">Revenue</TableCell>
+                      <TableCell align="right">%</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {salesAnalysis.worstSellers.map((item, idx) => (
+                      <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(255, 152, 0, 0.05)' : 'transparent' }}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={idx === 0 ? 700 : 400}>
+                            {item.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2">{item.quantity}</Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="warning.main">
+                            {currency(item.revenue)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                            <Typography variant="body2">{item.quantityPercent.toFixed(1)}%</Typography>
+                            <TrendingDown size={14} color="#ff9800" />
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
 
       {/* Notifications Panel */}
       <Card

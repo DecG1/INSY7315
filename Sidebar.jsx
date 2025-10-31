@@ -66,13 +66,12 @@ const Sidebar = ({ current, setCurrent }) => {
 
   // Navigation items with labels, icons, and hint text
   const items = [
-    { key: "dashboard", label: "Dashboard", icon: BarChart3, hint: "View key metrics, orders today, and weekly financial overview" },
+    { key: "dashboard", label: "Dashboard", icon: BarChart3, hint: "View key metrics, sales analytics, and top/bottom performing items" },
     { key: "inventory", label: "Inventory", icon: Boxes, hint: "Manage stock items, quantities, and expiry dates" },
     { key: "scanner", label: "Order Scanner", icon: QrCode, hint: "Enter customer orders manually and calculate gratuity" },
     { key: "recipes", label: "Recipes", icon: ChefHat, hint: "Manage recipes and track ingredient usage" },
     { key: "pricing", label: "Ingredient Pricing", icon: DollarSign, hint: "Set and update ingredient costs for accurate pricing" },
     { key: "menubuilder", label: "Menu Builder", icon: UtensilsCrossed, hint: "Smart menu suggestions based on available inventory" },
-    { key: "salesanalytics", label: "Sales Analytics", icon: TrendingUp, hint: "Analyze best-selling and least-selling items to optimize your menu" },
     { key: "notifications", label: "Notifications", icon: Bell, hint: "View alerts for low stock and expiring items" },
     { key: "calculator", label: "Calculator", icon: FileSpreadsheet, hint: "Calculate recipe costs based on quantity" },
     { key: "reports", label: "Reports", icon: BarChart3, hint: "View weekly sales analytics and add manual sales entries" },
