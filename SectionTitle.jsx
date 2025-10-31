@@ -10,27 +10,46 @@ import { Box, Typography } from "@mui/material";
  * @param {React.Node} action - Optional action element (e.g., button)
  */
 const SectionTitle = ({ icon: Icon, title, action }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+  <Box sx={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    mb: 4,
+    pb: 2,
+    borderBottom: '2px solid',
+    borderColor: 'divider',
+  }}>
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
       {Icon && (
         <Box
           sx={{
-            bgcolor: 'rgba(139, 0, 0, 0.08)',
-            p: 1,
-            borderRadius: '10px',
+            background: 'linear-gradient(135deg, rgba(139, 0, 0, 0.12) 0%, rgba(139, 0, 0, 0.06) 100%)',
+            p: 1.5,
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(139, 0, 0, 0.1)',
           }}
         >
-          <Icon size={20} color="#8b0000" />
+          <Icon size={24} color="#8b0000" strokeWidth={2.5} />
         </Box>
       )}
-      <Typography variant="h6" fontWeight={700} sx={{ color: '#2c3e50', letterSpacing: '-0.3px' }}>
-        {title}
-      </Typography>
+      <Box>
+        <Typography 
+          variant="h5" 
+          fontWeight={700} 
+          sx={{ 
+            color: '#0f172a', 
+            letterSpacing: '-0.5px',
+            lineHeight: 1.2,
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
     </Box>
-    {action}
+    {action && <Box>{action}</Box>}
   </Box>
 );
 

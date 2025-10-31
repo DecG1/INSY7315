@@ -129,13 +129,12 @@ export default function Dashboard({ onNavigate }) {
   return (
     <Box
       sx={{
-        p: 3,
         display: "flex",
         flexDirection: "column",
-        gap: 3,
-        animation: 'fadeIn 0.6s ease-in-out',
+        gap: 4,
+        animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         '@keyframes fadeIn': {
-          from: { opacity: 0, transform: 'translateY(20px)' },
+          from: { opacity: 0, transform: 'translateY(30px)' },
           to: { opacity: 1, transform: 'translateY(0)' },
         },
       }}
@@ -160,10 +159,11 @@ export default function Dashboard({ onNavigate }) {
       <Card
         sx={{
           borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(226, 232, 240, 0.8)',
         }}
       >
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: 4 }}>
           <SectionTitle 
             icon={BarChart3} 
             title="Financial Overview"
@@ -178,10 +178,22 @@ export default function Dashboard({ onNavigate }) {
                     size="small"
                     sx={{
                       '& .MuiToggleButton-root': {
-                        borderRadius: '8px',
+                        borderRadius: '10px',
                         textTransform: 'none',
                         fontWeight: 600,
-                        px: 2,
+                        px: 2.5,
+                        py: 0.75,
+                        fontSize: '0.875rem',
+                        border: '1.5px solid #e2e8f0',
+                        transition: 'all 0.2s ease-in-out',
+                        '&.Mui-selected': {
+                          backgroundColor: '#8b0000',
+                          color: '#fff',
+                          borderColor: '#8b0000',
+                          '&:hover': {
+                            backgroundColor: '#6f0000',
+                          },
+                        },
                       },
                     }}
                   >
@@ -196,7 +208,7 @@ export default function Dashboard({ onNavigate }) {
                   <Button 
                     variant="outlined" 
                     size="small" 
-                    startIcon={<RefreshCw size={14} />} 
+                    startIcon={<RefreshCw size={16} />} 
                     onClick={fetchData}
                     disabled={isRefreshing}
                     sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}

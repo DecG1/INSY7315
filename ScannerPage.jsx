@@ -5,6 +5,7 @@ import SectionTitle from "./SectionTitle.jsx";
 import { currency } from "./helpers.js";
 import { addSale } from "./analyticsService.js";
 import HintTooltip from "./HintTooltip.jsx";
+import { logOrderCreated } from "./auditService.js";
 
 const ScannerPage = () => {
   // Order items organized by category
@@ -82,8 +83,24 @@ const ScannerPage = () => {
     };
     // Persist as a sale for dashboard/graphs; using order total as revenue, cost left as 0 for now
     await addSale({ date: docket.timestamp, amount: orderTotal, cost: 0 });
-  console.log("Order saved:", docket);
-  alert("Order saved and added to dashboard analytics.");
+    
+    // Log order creation to audit log
+    try {
+      await logOrderCreated({
+        items: [...food, ...drinks, ...dessert, ...other].map(i => ({ 
+          name: i.name, 
+          price: Number(i.price) || 0 
+        })),
+        total: orderTotal,
+        gratuity,
+        amountPaid: paid,
+      });
+    } catch (e) {
+      console.error("Failed to log order creation:", e);
+    }
+    
+    console.log("Order saved:", docket);
+    alert("Order saved and added to dashboard analytics.");
     // Optional: clear after save
     clearDocket();
   };

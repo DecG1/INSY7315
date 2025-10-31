@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { VERIFIED_USERS, REQUIRE_ACCESS_CODE } from "./config.js";
 import { setSession } from "./sessionService.js";
+import { logLogin } from "./auditService.js";
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
 
 export default function LoginPage({ onLoginSuccess }) {
@@ -27,6 +28,7 @@ export default function LoginPage({ onLoginSuccess }) {
     const normalized = email.trim().toLowerCase();
     if (!VERIFIED_USERS.includes(normalized)) {
       setError("This user is not allowed to access the app.");
+      await logLogin(normalized, false);
       return;
     }
 
@@ -34,11 +36,13 @@ export default function LoginPage({ onLoginSuccess }) {
       const required = import.meta.env.VITE_APP_ACCESS_CODE;
       if (!required || code !== required) {
         setError("Invalid access code.");
+        await logLogin(normalized, false);
         return;
       }
     }
 
     await setSession({ email: normalized, role });
+    await logLogin(normalized, true);
     if (onLoginSuccess) {
       onLoginSuccess();
     }
