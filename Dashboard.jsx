@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip, FormControl, InputLabel, Select, MenuItem, Slider } from "@mui/material";
+import { Box, Grid, Card, CardContent, Typography, Button, ToggleButtonGroup, ToggleButton, List, ListItem, ListItemText, IconButton, Table, TableBody, TableCell, TableHead, TableRow, Chip, FormControl, InputLabel, Select, MenuItem, Slider, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import {
   BarChart3, AlertTriangle, CalendarClock, PackageX, DollarSign, RefreshCw, Bell, ExternalLink, TrendingUp, TrendingDown, Trophy, AlertCircle, PieChart
 } from "lucide-react";
@@ -26,6 +26,7 @@ export default function Dashboard({ onNavigate }) {
   const [period, setPeriod] = useState('weekly'); // Current period: 'weekly', 'monthly', or 'yearly'
   const [notifications, setNotifications] = useState([]); // Recent notifications
   const [orders, setOrders] = useState([]); // Order history for sales analysis
+  const [showOrdersDialog, setShowOrdersDialog] = useState(false);
   
   // Analytics filters
   const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // all, 7days, 30days, 90days
@@ -144,8 +145,10 @@ export default function Dashboard({ onNavigate }) {
       if (!order.items || !Array.isArray(order.items)) return;
 
       order.items.forEach(item => {
-        const itemName = item.name || item.item || "Unknown Item";
-        const quantity = Number(item.quantity) || 0;
+  const itemName = item.name || item.item || "Unknown Item";
+  // Default to 1 if quantity is missing/zero to support scanner entries without qty
+  const parsedQty = Number(item.quantity);
+  const quantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
         const price = Number(item.price) || 0;
         const itemRevenue = quantity * price;
 
@@ -274,7 +277,13 @@ export default function Dashboard({ onNavigate }) {
           <MetricCard title="Low Stock Items" value={invCount} note="Total inventory items" icon={AlertTriangle} />
         </Grid>
         <Grid item xs={12} md={3}>
-          <MetricCard title="Orders Today" value={ordersToday} note="From today's saved dockets" icon={CalendarClock} />
+          <MetricCard 
+            title="Orders Today" 
+            value={ordersToday} 
+            note="From today's saved dockets" 
+            icon={CalendarClock}
+            onClick={() => setShowOrdersDialog(true)}
+          />
         </Grid>
         <Grid item xs={12} md={3}>
           <MetricCard title="Expiring Soon" value={expiringSoon} note="Next 7 days" icon={PackageX} />
@@ -283,6 +292,65 @@ export default function Dashboard({ onNavigate }) {
           <MetricCard title="Daily Revenue" value={currency(revenueToday)} note="From local sales table" icon={DollarSign} />
         </Grid>
       </Grid>
+
+      {/* Orders Today Dialog */}
+      <Dialog open={showOrdersDialog} onClose={() => setShowOrdersDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Today's Orders</DialogTitle>
+        <DialogContent dividers>
+          {(() => {
+            const todayStr = new Date().toDateString();
+            const todaysOrders = orders.filter(o => new Date(o.date || o.timestamp).toDateString() === todayStr);
+            if (todaysOrders.length === 0) {
+              return (
+                <Typography color="text.secondary">No orders saved today.</Typography>
+              );
+            }
+            return (
+              <List>
+                {todaysOrders.map((o, idx) => (
+                  <ListItem key={idx} alignItems="flex-start" sx={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle2">{new Date(o.date || o.timestamp).toLocaleString()}</Typography>
+                      <Typography variant="subtitle2" color="success.main">{currency(o.amount || 0)}</Typography>
+                    </Box>
+                    {Array.isArray(o.items) && o.items.length > 0 ? (
+                      <Table size="small" sx={{ backgroundColor: 'rgba(0,0,0,0.015)', borderRadius: 1 }}>
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Item</TableCell>
+                            <TableCell align="right">Qty</TableCell>
+                            <TableCell align="right">Price</TableCell>
+                            <TableCell align="right">Subtotal</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {o.items.map((it, i) => {
+                            const q = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
+                            const p = Number(it.price) || 0;
+                            return (
+                              <TableRow key={i}>
+                                <TableCell>{it.name || 'Item'}</TableCell>
+                                <TableCell align="right">{q}</TableCell>
+                                <TableCell align="right">{currency(p)}</TableCell>
+                                <TableCell align="right">{currency(q * p)}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">No item details available for this order.</Typography>
+                    )}
+                  </ListItem>
+                ))}
+              </List>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowOrdersDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Financial overview chart with period selector */}
       <Card

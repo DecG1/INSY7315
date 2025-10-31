@@ -11,17 +11,21 @@ import { Card, CardContent, Box, Typography } from "@mui/material";
  * @param {string} tone - Optional color tone (unused)
  * @param {React.Component} icon - Optional icon component
  */
-const MetricCard = ({ title, value, note, tone = "default", icon: Icon }) => (
+const MetricCard = ({ title, value, note, tone = "default", icon: Icon, onClick }) => (
   <Card 
     sx={{ 
       borderRadius: '16px',
       height: '100%',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      cursor: onClick ? 'pointer' : 'default',
       '&:hover': {
         transform: 'translateY(-4px)',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
       },
     }}
+    onClick={onClick}
+    role={onClick ? 'button' : undefined}
+    tabIndex={onClick ? 0 : undefined}
   >
     <CardContent sx={{ p: 3, height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', height: '100%' }}>

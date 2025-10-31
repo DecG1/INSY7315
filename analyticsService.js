@@ -131,8 +131,10 @@ export async function yearlySales() {
 }
 
 // Utility to add a sale (for testing/chart input)
-export function addSale({ date = new Date().toISOString(), amount, cost = 0 }) {
-  return db.sales.add({ date, amount: Number(amount), cost: Number(cost) });
+export function addSale({ date = new Date().toISOString(), amount, cost = 0, items = [] }) {
+  // Persist optional items array for analytics (e.g., pie chart)
+  // Dexie will store non-indexed fields even if not part of schema indexes
+  return db.sales.add({ date, amount: Number(amount), cost: Number(cost), items });
 }
 
 /**

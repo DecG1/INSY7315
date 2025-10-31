@@ -81,8 +81,15 @@ const ScannerPage = () => {
       orderTotal, amountPaid: paid, gratuity,
       timestamp: new Date().toISOString()
     };
-    // Persist as a sale for dashboard/graphs; using order total as revenue, cost left as 0 for now
-    await addSale({ date: docket.timestamp, amount: orderTotal, cost: 0 });
+    // Persist as a sale for dashboard/graphs; include line items for analytics
+    const items = [...food, ...drinks, ...dessert, ...other]
+      .filter(i => i?.name)
+      .map(i => ({ 
+        name: i.name, 
+        price: Number(i.price) || 0,
+        quantity: 1,
+      }));
+    await addSale({ date: docket.timestamp, amount: orderTotal, cost: 0, items });
     
     // Log order creation to audit log
     try {
