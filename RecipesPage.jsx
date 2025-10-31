@@ -191,9 +191,9 @@ export default function RecipesPage() {
         gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
         gap: 3,
         p: 3,
-        animation: 'fadeIn 0.6s ease-in-out',
+        animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         '@keyframes fadeIn': {
-          from: { opacity: 0, transform: 'translateY(20px)' },
+          from: { opacity: 0, transform: 'translateY(30px)' },
           to: { opacity: 1, transform: 'translateY(0)' },
         },
       }}
@@ -202,21 +202,28 @@ export default function RecipesPage() {
       <Card
         sx={{
           borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(226, 232, 240, 0.8)',
+          height: 'fit-content',
         }}
       >
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: 4 }}>
           <SectionTitle icon={ChefHat} title="Recipe Overview" />
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, mt: 2 }}>
             <TextField
-                  label="Servings to cook"
-                  type="number"
-                  size="small"
-                  value={servings}                
-                  onChange={(e) => setServings(e.target.value)}
-                  inputProps={{ min: 1 }}
-                  sx={{ width: 180 }}
-                  />
+              label="Servings to cook"
+              type="number"
+              size="small"
+              value={servings}                
+              onChange={(e) => setServings(e.target.value)}
+              inputProps={{ min: 1 }}
+              sx={{ 
+                width: 180,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '10px',
+                }
+              }}
+            />
             <Typography variant="body2" color="text.secondary">
               Choose servings, then click <em>Cook</em> on a recipe to deduct stock.
             </Typography>
@@ -225,46 +232,91 @@ export default function RecipesPage() {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Recipe Name</TableCell>
-                <TableCell>Dish Type</TableCell>
-                <TableCell>Estimated Cost</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Recipe Name</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Dish Type</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Estimated Cost</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((r) => (
-                <TableRow key={r.id ?? r.name} hover>
+                <TableRow 
+                  key={r.id ?? r.name} 
+                  hover
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                    },
+                  }}
+                >
                   <TableCell>{r.name}</TableCell>
                   <TableCell>{r.type}</TableCell>
                   <TableCell>{currency(r.cost ?? 0)}</TableCell>
                   <TableCell align="right">
-                    <HintTooltip hint="Cook this recipe and deduct ingredients from inventory">
-                      <IconButton onClick={() => handleCook(r)}>
-                        <UtensilsCrossed size={16} />
-                      </IconButton>
-                    </HintTooltip>
-                    <HintTooltip hint="View recipe details and cooking instructions">
-                      <IconButton>
-                        <Eye size={16} />
-                      </IconButton>
-                    </HintTooltip>
-                    <HintTooltip hint="Edit recipe name, type, ingredients, or instructions">
-                      <IconButton>
-                        <Pencil size={16} />
-                      </IconButton>
-                    </HintTooltip>
-                    <HintTooltip hint="Permanently delete this recipe">
-                      <IconButton color="error" onClick={() => handleDeleteRecipe(r.id)}>
-                        <Trash2 size={16} />
-                      </IconButton>
-                    </HintTooltip>
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                      <HintTooltip hint="Cook this recipe and deduct ingredients from inventory">
+                        <IconButton 
+                          onClick={() => handleCook(r)}
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(139, 0, 0, 0.08)',
+                            }
+                          }}
+                        >
+                          <UtensilsCrossed size={16} />
+                        </IconButton>
+                      </HintTooltip>
+                      <HintTooltip hint="View recipe details and cooking instructions">
+                        <IconButton
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(139, 0, 0, 0.08)',
+                            }
+                          }}
+                        >
+                          <Eye size={16} />
+                        </IconButton>
+                      </HintTooltip>
+                      <HintTooltip hint="Edit recipe name, type, ingredients, or instructions">
+                        <IconButton
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(139, 0, 0, 0.08)',
+                            }
+                          }}
+                        >
+                          <Pencil size={16} />
+                        </IconButton>
+                      </HintTooltip>
+                      <HintTooltip hint="Permanently delete this recipe">
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleDeleteRecipe(r.id)}
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(244, 67, 54, 0.08)',
+                            }
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </IconButton>
+                      </HintTooltip>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4}>
-                    <Typography color="text.secondary">No recipes yet.</Typography>
+                  <TableCell colSpan={4} align="center">
+                    <Box sx={{ py: 3 }}>
+                      <ChefHat size={40} color="#ccc" style={{ marginBottom: '8px' }} />
+                      <Typography color="text.secondary" fontWeight={600}>
+                        No recipes yet.
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Create your first recipe using the form on the right.
+                      </Typography>
+                    </Box>
                   </TableCell>
                 </TableRow>
               )}
@@ -277,17 +329,23 @@ export default function RecipesPage() {
       <Card
         sx={{
           borderRadius: '16px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(226, 232, 240, 0.8)',
+          height: 'fit-content',
         }}
       >
-        <CardContent sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+        <CardContent sx={{ p: 4, display: "flex", flexDirection: "column", gap: 2.5 }}>
           <SectionTitle title="Add New Recipe" />
           <TextField
             label="Recipe Name"
-          
             fullWidth
             value={newRecipe.name}
             onChange={(e) => setNewRecipe((r) => ({ ...r, name: e.target.value }))}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '10px',
+              }
+            }}
           />
           <FormControl fullWidth>
             <InputLabel>Dish Type</InputLabel>
@@ -295,6 +353,9 @@ export default function RecipesPage() {
               label="Dish Type"
               value={newRecipe.type}
               onChange={(e) => setNewRecipe((r) => ({ ...r, type: e.target.value }))}
+              sx={{
+                borderRadius: '10px',
+              }}
             >
               <MenuItem value="Main Course">Main Course</MenuItem>
               <MenuItem value="Starter">Starter</MenuItem>
@@ -308,10 +369,15 @@ export default function RecipesPage() {
             fullWidth
             value={newRecipe.instructions}
             onChange={(e) => setNewRecipe((r) => ({ ...r, instructions: e.target.value }))}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: '10px',
+              }
+            }}
           />
 
-          <Divider />
-          <Typography variant="subtitle2" fontWeight={700}>
+          <Divider sx={{ my: 1 }} />
+          <Typography variant="subtitle2" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             Ingredients (from Inventory)
           </Typography>
 
@@ -330,6 +396,10 @@ export default function RecipesPage() {
                   gridTemplateColumns: "6fr 3fr 2fr auto",
                   gap: 2,
                   alignItems: "center",
+                  p: 2,
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(226, 232, 240, 0.8)',
                 }}
               >
                 <Autocomplete
@@ -346,19 +416,34 @@ export default function RecipesPage() {
                       setIngredientField(idx, { invId: null, name: "", unit: "g" });
                     }
                   }}
-                  renderInput={(params) => <TextField {...params} label="Ingredient (from inventory)" />}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="Ingredient (from inventory)"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '10px',
+                        }
+                      }}
+                    />
+                  )}
                   disableClearable={false}
                 />
                 <TextField
-                 label="Quantity"
-                 type="number"
+                  label="Quantity"
+                  type="number"
                   value={ing.qty === 0 ? "" : ing.qty}                
-                    onChange={(e) => {
-                     const v = e.target.value;
-                      setIngredientField(idx, { qty: v === "" ? 0 : Number(v) }); //0 isnt shown by default
-                         }}
-                            inputProps={{ min: 0 }}
-                             />
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setIngredientField(idx, { qty: v === "" ? 0 : Number(v) });
+                  }}
+                  inputProps={{ min: 0 }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                    }
+                  }}
+                />
 
                 <FormControl>
                   <InputLabel>Unit</InputLabel>
@@ -366,7 +451,10 @@ export default function RecipesPage() {
                     label="Unit"
                     value={ing.unit}
                     onChange={(e) => setIngredientField(idx, { unit: e.target.value })}
-                    disabled={Boolean(ing.invId)} // lock to inventory unit; set false to allow conversions
+                    disabled={Boolean(ing.invId)}
+                    sx={{
+                      borderRadius: '10px',
+                    }}
                   >
                     {["g", "kg", "ml", "l", "ea"].map((u) => (
                       <MenuItem key={u} value={u}>
@@ -376,12 +464,20 @@ export default function RecipesPage() {
                   </Select>
                 </FormControl>
                 <HintTooltip hint="Remove this ingredient from the recipe">
-                  <IconButton color="error" onClick={() => removeIngredientRow(idx)}>
+                  <IconButton 
+                    color="error" 
+                    onClick={() => removeIngredientRow(idx)}
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(244, 67, 54, 0.08)',
+                      }
+                    }}
+                  >
                     <X size={18} />
                   </IconButton>
                 </HintTooltip>
                 {unitHint && (
-                  <Typography variant="caption" color="text.secondary" sx={{ gridColumn: "1 / -1" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ gridColumn: "1 / -1", mt: 1 }}>
                     {unitHint}
                   </Typography>
                 )}
@@ -390,28 +486,68 @@ export default function RecipesPage() {
           })}
 
           <HintTooltip hint="Add another ingredient to this recipe">
-            <Button startIcon={<PlusCircle size={16} />} onClick={addIngredientRow}>
+            <Button 
+              startIcon={<PlusCircle size={16} />} 
+              onClick={addIngredientRow}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                fontWeight: 600,
+              }}
+            >
               Add Ingredient
             </Button>
           </HintTooltip>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Divider sx={{ my: 1 }} />
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: 'wrap' }}>
             <HintTooltip hint="Calculate the total cost of all ingredients in this recipe based on current inventory prices">
-              <Button variant="contained" color="success" onClick={calculateCost}>
+              <Button 
+                variant="contained" 
+                color="success" 
+                onClick={calculateCost}
+                sx={{
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(76, 175, 80, 0.2)',
+                }}
+              >
                 Calculate Cost
               </Button>
             </HintTooltip>
-            <Typography variant="subtitle2">Estimated Cost: {currency(estCost)}</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Estimated Cost: {currency(estCost)}
+            </Typography>
           </Box>
 
           <Box sx={{ display: "flex", gap: 2 }}>
             <HintTooltip hint="Clear all ingredients and start over">
-              <Button variant="text" onClick={() => setNewRecipe((r) => ({ ...r, ingredients: [] }))}>
+              <Button 
+                variant="outlined" 
+                onClick={() => setNewRecipe((r) => ({ ...r, ingredients: [] }))}
+                sx={{
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
                 Clear
               </Button>
             </HintTooltip>
             <HintTooltip hint="Save this recipe to the database">
-              <Button variant="contained" color="error" onClick={handleSaveRecipe}>
+              <Button 
+                variant="contained" 
+                color="error" 
+                onClick={handleSaveRecipe}
+                sx={{
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  boxShadow: '0 2px 8px rgba(139, 0, 0, 0.2)',
+                }}
+              >
                 Save Recipe
               </Button>
             </HintTooltip>

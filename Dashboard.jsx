@@ -268,9 +268,6 @@ export default function Dashboard({ onNavigate }) {
   return (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
         animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         '@keyframes fadeIn': {
           from: { opacity: 0, transform: 'translateY(30px)' },
@@ -278,8 +275,8 @@ export default function Dashboard({ onNavigate }) {
         },
       }}
     >
-      {/* Metric cards */}
       <Grid container spacing={3}>
+        {/* Metric cards */}
         <Grid item xs={12} md={3}>
           <MetricCard 
             title="Low Stock Items" 
@@ -316,12 +313,21 @@ export default function Dashboard({ onNavigate }) {
             onClick={() => { setRevenuePeriod('daily'); setShowRevenueDialog(true); }}
           />
         </Grid>
-      </Grid>
 
-      {/* Orders Today Dialog */}
-      <Dialog open={showOrdersDialog} onClose={() => setShowOrdersDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Today's Orders</DialogTitle>
-        <DialogContent dividers>
+      {/* Dialogs */}
+      <Dialog 
+        open={showOrdersDialog} 
+        onClose={() => setShowOrdersDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, fontWeight: 700 }}>Today's Orders</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
           {(() => {
             const todayStr = new Date().toDateString();
             const todaysOrders = orders.filter(o => new Date(o.date || o.timestamp).toDateString() === todayStr);
@@ -372,15 +378,30 @@ export default function Dashboard({ onNavigate }) {
             );
           })()}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowOrdersDialog(false)}>Close</Button>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button 
+            onClick={() => setShowOrdersDialog(false)} 
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Revenue Details Dialog */}
-      <Dialog open={showRevenueDialog} onClose={() => setShowRevenueDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Revenue Details</DialogTitle>
-        <DialogContent dividers>
+      <Dialog 
+        open={showRevenueDialog} 
+        onClose={() => setShowRevenueDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, fontWeight: 700 }}>Revenue Details</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
           <Box sx={{ mb: 2 }}>
             <ToggleButtonGroup
               color="primary"
@@ -388,6 +409,22 @@ export default function Dashboard({ onNavigate }) {
               value={revenuePeriod}
               exclusive
               onChange={(e, v) => v && setRevenuePeriod(v)}
+              sx={{
+                '& .MuiToggleButton-root': {
+                  borderRadius: '10px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  px: 2,
+                  py: 0.75,
+                  '&.Mui-selected': {
+                    backgroundColor: '#8b0000',
+                    color: '#fff',
+                    '&:hover': {
+                      backgroundColor: '#6f0000',
+                    },
+                  },
+                },
+              }}
             >
               <ToggleButton value="daily">Daily</ToggleButton>
               <ToggleButton value="weekly">Weekly</ToggleButton>
@@ -497,15 +534,30 @@ export default function Dashboard({ onNavigate }) {
             );
           })()}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowRevenueDialog(false)}>Close</Button>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button 
+            onClick={() => setShowRevenueDialog(false)} 
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Inventory Dialog */}
-      <Dialog open={showInventoryDialog} onClose={() => setShowInventoryDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Inventory Items</DialogTitle>
-        <DialogContent dividers>
+      <Dialog 
+        open={showInventoryDialog} 
+        onClose={() => setShowInventoryDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, fontWeight: 700 }}>Inventory Items</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
           {inventoryList.length === 0 ? (
             <Typography color="text.secondary">No inventory items found.</Typography>
           ) : (
@@ -533,15 +585,30 @@ export default function Dashboard({ onNavigate }) {
             </Table>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowInventoryDialog(false)}>Close</Button>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button 
+            onClick={() => setShowInventoryDialog(false)} 
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Expiring Soon Dialog */}
-      <Dialog open={showExpiringDialog} onClose={() => setShowExpiringDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Expiring Within 7 Days</DialogTitle>
-        <DialogContent dividers>
+      <Dialog 
+        open={showExpiringDialog} 
+        onClose={() => setShowExpiringDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, fontWeight: 700 }}>Expiring Within 7 Days</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
           {(() => {
             const now = new Date();
             const soonItems = (inventoryList || []).filter((r) => {
@@ -582,20 +649,23 @@ export default function Dashboard({ onNavigate }) {
             );
           })()}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowExpiringDialog(false)}>Close</Button>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button 
+            onClick={() => setShowExpiringDialog(false)} 
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Financial overview chart and Sales Analytics side-by-side */}
-      <Grid container spacing={3}>
-        {/* Financial Overview Chart - Left Side */}
-        <Grid item xs={12} lg={7}>
-          <Card
-            sx={{
-              borderRadius: '16px',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-              border: '1px solid rgba(226, 232, 240, 0.8)',
+      {/* Financial Overview Chart - Left Side */}
+      <Grid item xs={12} lg={7}>
+        <Card
+          sx={{
+            borderRadius: '16px',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid rgba(226, 232, 240, 0.8)',
               height: '100%',
             }}
           >
@@ -679,8 +749,15 @@ export default function Dashboard({ onNavigate }) {
 
         {/* Sales Analytics - Right Side */}
         <Grid item xs={12} lg={5}>
-          <Card sx={{ borderRadius: '12px', height: '100%' }}>
-            <CardContent sx={{ p: 3 }}>
+          <Card
+            sx={{
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+              height: '100%',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
               <SectionTitle
                 icon={PieChart}
                 title="Sales Analytics"
@@ -688,7 +765,7 @@ export default function Dashboard({ onNavigate }) {
               />
               
               {/* Filters */}
-              <Grid container spacing={2} sx={{ mb: 3 }}>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={12} sm={6}>
                   <HintTooltip hint="Filter sales data by time period">
                     <FormControl fullWidth size="small">
@@ -697,6 +774,7 @@ export default function Dashboard({ onNavigate }) {
                         value={timePeriodFilter}
                         label="Time Period"
                         onChange={(e) => setTimePeriodFilter(e.target.value)}
+                        sx={{ borderRadius: '10px' }}
                       >
                         <MenuItem value="all">All Time</MenuItem>
                         <MenuItem value="7days">Last 7 Days</MenuItem>
@@ -715,6 +793,7 @@ export default function Dashboard({ onNavigate }) {
                         value={sortBy}
                         label="Sort By"
                         onChange={(e) => setSortBy(e.target.value)}
+                        sx={{ borderRadius: '10px' }}
                       >
                         <MenuItem value="quantity">Quantity Sold</MenuItem>
                         <MenuItem value="revenue">Revenue</MenuItem>
@@ -727,7 +806,7 @@ export default function Dashboard({ onNavigate }) {
                 <Grid item xs={12}>
                   <HintTooltip hint="Set minimum quantity threshold to filter out low-volume items">
                     <Box>
-                      <Typography variant="caption" color="text.secondary" gutterBottom>
+                      <Typography variant="caption" color="text.secondary" gutterBottom display="block">
                         Min Quantity: {minQuantity}
                       </Typography>
                       <Slider
@@ -742,7 +821,18 @@ export default function Dashboard({ onNavigate }) {
                           { value: 50, label: '50' },
                         ]}
                         valueLabelDisplay="auto"
-                        sx={{ mt: 1 }}
+                        sx={{ 
+                          mt: 1,
+                          '& .MuiSlider-thumb': {
+                            backgroundColor: '#8b0000',
+                          },
+                          '& .MuiSlider-track': {
+                            backgroundColor: '#8b0000',
+                          },
+                          '& .MuiSlider-rail': {
+                            backgroundColor: '#e2e8f0',
+                          },
+                        }}
                       />
                     </Box>
                   </HintTooltip>
@@ -751,7 +841,7 @@ export default function Dashboard({ onNavigate }) {
 
               {/* Pie Chart */}
               {pieChartData.length > 0 ? (
-                <Box sx={{ height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ height: 240, display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 2 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
                       <Pie
@@ -760,7 +850,7 @@ export default function Dashboard({ onNavigate }) {
                         cy="50%"
                         labelLine={false}
                         label={({ name, percent }) => `${name}: ${percent.toFixed(1)}%`}
-                        outerRadius={100}
+                        outerRadius={90}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -774,23 +864,23 @@ export default function Dashboard({ onNavigate }) {
                   </ResponsiveContainer>
                 </Box>
               ) : (
-                <Box sx={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
+                <Box sx={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, bgcolor: 'rgba(0, 0, 0, 0.02)', borderRadius: '10px' }}>
                   <Typography variant="body2" color="text.secondary" textAlign="center">
                     No sales data available.<br />Save orders from the Order Scanner to see distribution.
                   </Typography>
                 </Box>
               )}
 
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 2.5 }} />
 
               {/* Top Sellers & Slow Movers - Compact View */}
               {salesAnalysis.itemStats.length > 0 && (
-                <Grid container spacing={2}>
+                <Grid container spacing={2.5}>
                   {/* Top Sellers */}
                   <Grid item xs={12}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                       <Trophy size={18} color="#4caf50" />
-                      <Typography variant="subtitle2" fontWeight={700}>
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
                         Top Sellers
                       </Typography>
                       <Chip label={salesAnalysis.bestSellers.length} color="success" size="small" />
@@ -798,24 +888,30 @@ export default function Dashboard({ onNavigate }) {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ py: 0.75 }}>Item</TableCell>
-                          <TableCell align="right" sx={{ py: 0.75 }}>Qty</TableCell>
-                          <TableCell align="right" sx={{ py: 0.75 }}>Rev</TableCell>
+                          <TableCell sx={{ py: 1, fontWeight: 600, fontSize: '0.75rem' }}>Item</TableCell>
+                          <TableCell align="right" sx={{ py: 1, fontWeight: 600, fontSize: '0.75rem' }}>Qty</TableCell>
+                          <TableCell align="right" sx={{ py: 1, fontWeight: 600, fontSize: '0.75rem' }}>Revenue</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {salesAnalysis.bestSellers.slice(0, 3).map((item, idx) => (
-                          <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(76, 175, 80, 0.05)' : 'transparent' }}>
-                            <TableCell sx={{ py: 0.75 }}>
+                          <TableRow 
+                            key={idx} 
+                            sx={{ 
+                              backgroundColor: idx === 0 ? 'rgba(76, 175, 80, 0.05)' : 'transparent',
+                              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.02)' },
+                            }}
+                          >
+                            <TableCell sx={{ py: 1 }}>
                               <Typography variant="body2" fontWeight={idx === 0 ? 600 : 400} noWrap>
                                 {item.name}
                               </Typography>
                             </TableCell>
-                            <TableCell align="right" sx={{ py: 0.75 }}>
-                              <Typography variant="body2">{item.quantity}</Typography>
+                            <TableCell align="right" sx={{ py: 1 }}>
+                              <Typography variant="body2" fontWeight={500}>{item.quantity}</Typography>
                             </TableCell>
-                            <TableCell align="right" sx={{ py: 0.75 }}>
-                              <Typography variant="body2" color="success.main">
+                            <TableCell align="right" sx={{ py: 1 }}>
+                              <Typography variant="body2" color="success.main" fontWeight={500}>
                                 {currency(item.revenue)}
                               </Typography>
                             </TableCell>
@@ -827,9 +923,9 @@ export default function Dashboard({ onNavigate }) {
 
                   {/* Slow Movers */}
                   <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, mt: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
                       <AlertCircle size={18} color="#ff9800" />
-                      <Typography variant="subtitle2" fontWeight={700}>
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ flex: 1 }}>
                         Slow Movers
                       </Typography>
                       <Chip label={salesAnalysis.worstSellers.length} color="warning" size="small" />
@@ -837,24 +933,30 @@ export default function Dashboard({ onNavigate }) {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell sx={{ py: 0.75 }}>Item</TableCell>
-                          <TableCell align="right" sx={{ py: 0.75 }}>Qty</TableCell>
-                          <TableCell align="right" sx={{ py: 0.75 }}>Rev</TableCell>
+                          <TableCell sx={{ py: 1, fontWeight: 600, fontSize: '0.75rem' }}>Item</TableCell>
+                          <TableCell align="right" sx={{ py: 1, fontWeight: 600, fontSize: '0.75rem' }}>Qty</TableCell>
+                          <TableCell align="right" sx={{ py: 1, fontWeight: 600, fontSize: '0.75rem' }}>Revenue</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {salesAnalysis.worstSellers.slice(0, 3).map((item, idx) => (
-                          <TableRow key={idx} sx={{ backgroundColor: idx === 0 ? 'rgba(255, 152, 0, 0.05)' : 'transparent' }}>
-                            <TableCell sx={{ py: 0.75 }}>
+                          <TableRow 
+                            key={idx} 
+                            sx={{ 
+                              backgroundColor: idx === 0 ? 'rgba(255, 152, 0, 0.05)' : 'transparent',
+                              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.02)' },
+                            }}
+                          >
+                            <TableCell sx={{ py: 1 }}>
                               <Typography variant="body2" fontWeight={idx === 0 ? 600 : 400} noWrap>
                                 {item.name}
                               </Typography>
                             </TableCell>
-                            <TableCell align="right" sx={{ py: 0.75 }}>
-                              <Typography variant="body2">{item.quantity}</Typography>
+                            <TableCell align="right" sx={{ py: 1 }}>
+                              <Typography variant="body2" fontWeight={500}>{item.quantity}</Typography>
                             </TableCell>
-                            <TableCell align="right" sx={{ py: 0.75 }}>
-                              <Typography variant="body2" color="warning.main">
+                            <TableCell align="right" sx={{ py: 1 }}>
+                              <Typography variant="body2" color="warning.main" fontWeight={500}>
                                 {currency(item.revenue)}
                               </Typography>
                             </TableCell>
@@ -868,91 +970,95 @@ export default function Dashboard({ onNavigate }) {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
 
-      {/* Notifications Panel */}
-      <Card
-        sx={{
-          borderRadius: '12px',
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <SectionTitle 
-            icon={Bell} 
-            title="Recent Notifications"
-            action={
-              <HintTooltip title="View all notifications and manage alert preferences">
-                <Button 
-                  variant="text" 
-                  size="small"
-                  endIcon={<ExternalLink size={14} />}
-                  onClick={() => onNavigate?.('notifications')}
-                  sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+        {/* Notifications Panel */}
+        <Grid item xs={12} lg={12}>
+          <Card
+            sx={{
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(226, 232, 240, 0.8)',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <SectionTitle 
+                icon={Bell} 
+                title="Recent Notifications"
+                action={
+                  <HintTooltip title="View all notifications and manage alert preferences">
+                    <Button 
+                      variant="text" 
+                      size="small"
+                      endIcon={<ExternalLink size={14} />}
+                      onClick={() => onNavigate?.('notifications')}
+                      sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                    >
+                      View All
+                    </Button>
+                  </HintTooltip>
+                }
+              />
+              {notifications.length === 0 ? (
+                <Box
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    borderRadius: '10px',
+                    bgcolor: 'rgba(0, 0, 0, 0.02)',
+                  }}
                 >
-                  View All
-                </Button>
-              </HintTooltip>
-            }
-          />
-          {notifications.length === 0 ? (
-            <Box
-              sx={{
-                p: 4,
-                textAlign: 'center',
-                borderRadius: '10px',
-                bgcolor: 'rgba(0, 0, 0, 0.02)',
-              }}
-            >
-              <Bell size={40} color="#ccc" style={{ marginBottom: '12px' }} />
-              <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                No notifications
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                All clear! You'll see alerts here when actions are needed.
-              </Typography>
-            </Box>
-          ) : (
-            <List sx={{ p: 0 }}>
-              {notifications.map((notif, index) => (
-                <React.Fragment key={notif.id}>
-                  <ListItem
-                    sx={{
-                      px: 2,
-                      py: 1.5,
-                      borderRadius: '10px',
-                      '&:hover': {
-                        bgcolor: 'rgba(0, 0, 0, 0.02)',
-                      },
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <StatusChip 
-                            label={notif.tone === 'error' ? 'Alert' : 'Info'} 
-                            color={notif.tone === 'error' ? 'error' : 'default'}
-                          />
-                          <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                            {notif.ago || 'Recently'}
-                          </Typography>
-                        </Box>
-                      }
-                      secondary={
-                        <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          {notif.msg}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                  {index < notifications.length - 1 && (
-                    <Box sx={{ height: 1, bgcolor: 'divider', mx: 2 }} />
-                  )}
-                </React.Fragment>
-              ))}
-            </List>
-          )}
-        </CardContent>
-      </Card>
+                  <Bell size={40} color="#ccc" style={{ marginBottom: '12px' }} />
+                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                    No notifications
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    All clear! You'll see alerts here when actions are needed.
+                  </Typography>
+                </Box>
+              ) : (
+                <List sx={{ p: 0 }}>
+                  {notifications.map((notif, index) => (
+                    <React.Fragment key={notif.id}>
+                      <ListItem
+                        sx={{
+                          px: 2,
+                          py: 1.5,
+                          borderRadius: '10px',
+                          '&:hover': {
+                            bgcolor: 'rgba(0, 0, 0, 0.02)',
+                          },
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                              <StatusChip 
+                                label={notif.tone === 'error' ? 'Alert' : 'Info'} 
+                                color={notif.tone === 'error' ? 'error' : 'default'}
+                              />
+                              <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                                {notif.ago || 'Recently'}
+                              </Typography>
+                            </Box>
+                          }
+                          secondary={
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>
+                              {notif.msg}
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                      {index < notifications.length - 1 && (
+                        <Box sx={{ height: 1, bgcolor: 'divider', mx: 2 }} />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 }

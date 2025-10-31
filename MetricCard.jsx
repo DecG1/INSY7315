@@ -15,19 +15,23 @@ const MetricCard = ({ title, value, note, tone = "default", icon: Icon, onClick 
   <Card 
     sx={{ 
       borderRadius: '16px',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+      border: '1px solid rgba(226, 232, 240, 0.8)',
       height: '100%',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: onClick ? 'pointer' : 'default',
       '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+        transform: onClick ? 'translateY(-4px)' : 'none',
+        boxShadow: onClick 
+          ? '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' 
+          : '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
       },
     }}
     onClick={onClick}
     role={onClick ? 'button' : undefined}
     tabIndex={onClick ? 0 : undefined}
   >
-    <CardContent sx={{ p: 3, height: '100%' }}>
+    <CardContent sx={{ p: 4, height: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', height: '100%' }}>
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <Typography

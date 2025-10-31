@@ -308,7 +308,7 @@ export default function MenuBuilderPage() {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       <SectionTitle
         icon={Restaurant}
         title="Smart Menu Builder"
@@ -316,13 +316,14 @@ export default function MenuBuilderPage() {
       />
 
       {/* Filter Controls */}
-      <Box sx={{ mb: 3, display: "flex", gap: 2, alignItems: "center" }}>
+      <Box sx={{ mb: 3, display: "flex", gap: 2, alignItems: "center", flexWrap: 'wrap' }}>
         <FormControl sx={{ minWidth: 200 }}>
           <InputLabel>Filter by Status</InputLabel>
           <Select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             label="Filter by Status"
+            sx={{ borderRadius: '10px' }}
           >
             <MenuItem value="all">All Recipes ({analyzedRecipes.length})</MenuItem>
             <MenuItem value="canMake">
@@ -341,6 +342,11 @@ export default function MenuBuilderPage() {
           variant="outlined"
           startIcon={<Refresh />}
           onClick={loadData}
+          sx={{
+            borderRadius: '10px',
+            textTransform: 'none',
+            fontWeight: 600,
+          }}
         >
           Refresh Data
         </Button>
@@ -349,7 +355,14 @@ export default function MenuBuilderPage() {
       </Box>
 
       {/* Summary Alert */}
-      <Alert severity="info" sx={{ mb: 3 }}>
+      <Alert 
+        severity="info" 
+        sx={{ 
+          mb: 3,
+          borderRadius: '12px',
+          border: '1px solid rgba(33, 150, 243, 0.3)',
+        }}
+      >
         <strong>Inventory Analysis:</strong> You can fully prepare{" "}
         {analyzedRecipes.filter((r) => r.overallStatus === "canMake").length} recipe(s),
         partially prepare {analyzedRecipes.filter((r) => r.overallStatus === "partial").length}{" "}
@@ -361,7 +374,13 @@ export default function MenuBuilderPage() {
       <Grid container spacing={3}>
         {filteredRecipes.length === 0 ? (
           <Grid item xs={12}>
-            <Alert severity="warning">
+            <Alert 
+              severity="warning"
+              sx={{
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 152, 0, 0.3)',
+              }}
+            >
               No recipes found. {filterStatus !== "all" && "Try changing the filter or "}
               Add recipes to get started!
             </Alert>
@@ -374,19 +393,26 @@ export default function MenuBuilderPage() {
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
-                  borderLeft: 4,
+                  borderRadius: '16px',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+                  border: '2px solid',
                   borderColor:
                     recipe.overallStatus === "canMake"
                       ? "success.main"
                       : recipe.overallStatus === "partial"
                       ? "warning.main"
                       : "error.main",
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 16px 0 rgba(0, 0, 0, 0.15)',
+                  },
                 }}
               >
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent sx={{ flexGrow: 1, p: 3 }}>
                   {/* Recipe Header */}
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "start", mb: 2 }}>
-                    <Typography variant="h6" component="div">
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "start", mb: 2, gap: 2 }}>
+                    <Typography variant="h6" component="div" sx={{ fontWeight: 700, lineHeight: 1.3 }}>
                       {recipe.name}
                     </Typography>
                     <Chip
@@ -394,6 +420,12 @@ export default function MenuBuilderPage() {
                       label={getStatusLabel(recipe)}
                       color={getStatusColor(recipe.overallStatus)}
                       size="small"
+                      sx={{
+                        fontWeight: 600,
+                        borderRadius: '8px',
+                        minWidth: 'fit-content',
+                        flexShrink: 0,
+                      }}
                     />
                   </Box>
 
@@ -407,65 +439,93 @@ export default function MenuBuilderPage() {
                   <Divider sx={{ my: 2 }} />
 
                   {/* Ingredient Analysis */}
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: "bold" }}>
+                  <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700 }}>
                     Ingredient Availability:
                   </Typography>
 
-                  <List dense>
+                  <Box sx={{ maxHeight: 200, overflowY: 'auto', pr: 1 }}>
                     {recipe.ingredientAnalysis.map((ing, index) => (
-                      <ListItem
+                      <Paper
                         key={index}
+                        elevation={0}
                         sx={{
-                          px: 0,
-                          py: 0.5,
-                          color:
+                          mb: 1,
+                          p: 1.5,
+                          backgroundColor:
                             ing.status === "sufficient"
-                              ? "success.main"
+                              ? "rgba(76, 175, 80, 0.08)"
                               : ing.status === "partial"
-                              ? "warning.main"
-                              : "error.main",
+                              ? "rgba(255, 152, 0, 0.08)"
+                              : "rgba(244, 67, 54, 0.08)",
+                          borderRadius: '8px',
+                          border: '1px solid',
+                          borderColor:
+                            ing.status === "sufficient"
+                              ? "rgba(76, 175, 80, 0.2)"
+                              : ing.status === "partial"
+                              ? "rgba(255, 152, 0, 0.2)"
+                              : "rgba(244, 67, 54, 0.2)",
                         }}
                       >
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                              <Typography variant="body2">{ing.name}</Typography>
-                              <Typography variant="body2">
-                                {(ing.available || 0).toFixed(1)} / {(ing.needed || 0).toFixed(1)} {ing.unit}
-                              </Typography>
-                            </Box>
-                          }
-                          secondary={
-                            ing.status === "sufficient" ? (
-                              <Typography variant="caption" color="success.main">
-                                ✓ Can make {ing.canMake || 0} serving{(ing.canMake || 0) !== 1 ? "s" : ""}
-                              </Typography>
-                            ) : ing.status === "partial" ? (
-                              <Typography variant="caption" color="warning.main">
-                                ⚠ Short by {((ing.needed || 0) - (ing.available || 0)).toFixed(1)} {ing.unit}
-                              </Typography>
-                            ) : (
-                              <Typography variant="caption" color="error.main">
-                                ✗ Not in inventory
-                              </Typography>
-                            )
-                          }
-                        />
-                      </ListItem>
+                        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {ing.name}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              fontWeight: 600,
+                              color:
+                                ing.status === "sufficient"
+                                  ? "success.main"
+                                  : ing.status === "partial"
+                                  ? "warning.main"
+                                  : "error.main",
+                            }}
+                          >
+                            {(ing.available || 0).toFixed(1)} / {(ing.needed || 0).toFixed(1)} {ing.unit}
+                          </Typography>
+                        </Box>
+                        {ing.status === "sufficient" ? (
+                          <Typography variant="caption" color="success.main" sx={{ fontWeight: 500 }}>
+                            ✓ Can make {ing.canMake || 0} serving{(ing.canMake || 0) !== 1 ? "s" : ""}
+                          </Typography>
+                        ) : ing.status === "partial" ? (
+                          <Typography variant="caption" color="warning.main" sx={{ fontWeight: 500 }}>
+                            ⚠ Short by {((ing.needed || 0) - (ing.available || 0)).toFixed(1)} {ing.unit}
+                          </Typography>
+                        ) : (
+                          <Typography variant="caption" color="error.main" sx={{ fontWeight: 500 }}>
+                            ✗ Not in inventory
+                          </Typography>
+                        )}
+                      </Paper>
                     ))}
-                  </List>
+                  </Box>
 
                   {/* Servings Progress Bar */}
                   {recipe.canMakeServings > 0 && (
-                    <Box sx={{ mt: 2 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Maximum servings: {recipe.canMakeServings}
-                      </Typography>
+                    <Box sx={{ mt: 2.5, p: 2, backgroundColor: 'rgba(76, 175, 80, 0.05)', borderRadius: '8px' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          Maximum servings:
+                        </Typography>
+                        <Chip 
+                          label={recipe.canMakeServings} 
+                          size="small" 
+                          color="success" 
+                          sx={{ fontWeight: 700, height: 24 }}
+                        />
+                      </Box>
                       <LinearProgress
                         variant="determinate"
                         value={Math.min(100, (recipe.canMakeServings / 10) * 100)}
                         color="success"
-                        sx={{ mt: 0.5 }}
+                        sx={{ 
+                          height: 8, 
+                          borderRadius: 4,
+                          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        }}
                       />
                     </Box>
                   )}
