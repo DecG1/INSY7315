@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Divider, Button, useTheme } from "@mui/material";
+import { Box, Typography, Divider, Button, useTheme, alpha } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { BarChart3, Boxes, QrCode, ChefHat, DollarSign, Bell, FileSpreadsheet, Users, Filter, UtensilsCrossed, TrendingUp, UserCog, History } from "lucide-react";
 import HintTooltip from "./HintTooltip.jsx"; // Import tooltip for navigation hints
@@ -14,15 +14,33 @@ const SidebarButton = styled(Button)(({ theme, selected }) => ({
   color: selected ? "#fff" : theme.palette.text.primary,
   backgroundColor: selected ? brandRed : "transparent",
   textTransform: "none",
-  padding: "10px 14px",
-  borderRadius: 10,
-  gap: 12,
+  padding: "11px 16px",
+  borderRadius: 12,
+  gap: 14,
   fontWeight: selected ? 600 : 500,
-  fontSize: "15px",
-  transition: "background-color 0.2s ease-in-out, color 0.2s ease-in-out",
-  borderLeft: selected ? `3px solid #6f0000` : `3px solid transparent`,
+  fontSize: "0.9375rem",
+  transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+  border: `2px solid ${selected ? brandRed : 'transparent'}`,
+  marginBottom: '4px',
+  position: 'relative',
+  overflow: 'hidden',
+  "&::before": {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '3px',
+    height: '100%',
+    backgroundColor: selected ? '#fff' : 'transparent',
+    transition: 'all 0.2s ease-in-out',
+  },
   "&:hover": {
-    backgroundColor: selected ? brandRed : "rgba(139, 0, 0, 0.06)",
+    backgroundColor: selected ? brandRed : alpha(brandRed, 0.08),
+    transform: 'translateX(4px)',
+    boxShadow: selected ? '0 4px 12px rgba(139, 0, 0, 0.2)' : 'none',
+  },
+  "& .MuiButton-startIcon": {
+    marginRight: '10px',
   },
 }));
 
@@ -73,7 +91,7 @@ const Sidebar = ({ current, setCurrent }) => {
   return (
     <Box
       sx={{
-        width: 264,
+        width: 280,
         height: '100vh',
         p: 3,
         display: 'flex',
@@ -81,25 +99,74 @@ const Sidebar = ({ current, setCurrent }) => {
         borderRight: '1px solid',
         borderColor: 'divider',
         bgcolor: theme.palette.background.paper,
-        boxShadow: 'none',
-        gap: 2,
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
+        gap: 1.5,
         overflowY: 'auto',
+        overflowX: 'hidden',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 4, mt: 1 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        mb: 3, 
+        mt: 1,
+        pb: 3,
+        borderBottom: '2px solid',
+        borderColor: 'divider',
+      }}>
         {/* Centered restaurant logo */}
-        <Logo size={48} />
+        <Logo size={52} />
       </Box>
       {/* Render navigation items with hint tooltips */}
-      {filtered.map((it) => (
-        <HintTooltip key={it.key} title={it.hint} placement="right">
-          <SidebarButton selected={current === it.key ? 1 : 0} onClick={() => setCurrent(it.key)} startIcon={<it.icon size={18} />}>{it.label}</SidebarButton>
-        </HintTooltip>
-      ))}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+        {filtered.map((it) => (
+          <HintTooltip key={it.key} title={it.hint} placement="right">
+            <SidebarButton 
+              selected={current === it.key ? 1 : 0} 
+              onClick={() => setCurrent(it.key)} 
+              startIcon={<it.icon size={20} strokeWidth={current === it.key ? 2.5 : 2} />}
+            >
+              {it.label}
+            </SidebarButton>
+          </HintTooltip>
+        ))}
+      </Box>
       <Box sx={{ flexGrow: 1 }} />
       <Divider sx={{ my: 2 }} />
       {/* App version and currency info */}
-      <Typography variant="caption" color="text.secondary">Ristorante Manager v1.0 • ZAR</Typography>
+      <Box sx={{ 
+        px: 2, 
+        py: 1.5, 
+        borderRadius: 2, 
+        bgcolor: alpha(brandRed, 0.05),
+        border: '1px solid',
+        borderColor: alpha(brandRed, 0.1),
+      }}>
+        <Typography 
+          variant="caption" 
+          color="text.secondary"
+          sx={{ 
+            fontWeight: 600,
+            display: 'block',
+            textAlign: 'center',
+          }}
+        >
+          Ristorante Manager v1.0
+        </Typography>
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            fontWeight: 700,
+            display: 'block',
+            textAlign: 'center',
+            color: brandRed,
+            mt: 0.5,
+          }}
+        >
+          ZAR
+        </Typography>
+      </Box>
     </Box>
   );
 };

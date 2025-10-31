@@ -11,4 +11,23 @@ db.version(2).stores({
   sales: "++id,date,amount,cost", 
 });
 
+db.version(3).stores({
+  sessions: "++id,email,role,ts",
+  users: "++id,email,passwordHash,role,createdAt",
+  inventory: "++id,name,qty,unit,expiry,cost",
+  recipes:   "++id,name,type,cost",
+  notifications: "++id,tone,msg,ago",
+  sales: "++id,date,amount,cost",
+});
+
+db.version(4).stores({
+  sessions: "++id,email,role,userId,ts",
+  users: "++id,email,passwordHash,role,createdAt",
+  inventory: "++id,name,qty,unit,expiry,cost",
+  recipes:   "++id,name,type,cost",
+  notifications: "++id,tone,msg,ago",
+  sales: "++id,date,amount,cost",
+  auditLogs: "++id,userId,userEmail,action,timestamp,category",
+});
+
 
