@@ -7,6 +7,7 @@ import { currency } from "./helpers.js";
 import { listRecipes } from "./recipesService.js";
 import { listInventory } from "./inventoryService.js";
 import HintTooltip from "./HintTooltip.jsx";
+import { logPricingChanged } from "./auditService.js";
 
 const PricingPage = () => {
   // Legacy pricing state (for mock ingredient price updates)
@@ -133,8 +134,18 @@ const PricingPage = () => {
    * Legacy function: Update mock ingredient price
    * Adds entry to price history log
    */
-  const updatePrice = () => {
-    setHistory((h) => [{ name: sel, from: 0, to: newPrice, date: new Date().toISOString().slice(0, 10) }, ...h]);
+  const updatePrice = async () => {
+    const oldPrice = priceList.find(p => p.name === sel)?.price || 0;
+    
+    setHistory((h) => [{ name: sel, from: oldPrice, to: newPrice, date: new Date().toISOString().slice(0, 10) }, ...h]);
+    
+    // Log pricing change to audit trail
+    await logPricingChanged(
+      sel,
+      oldPrice,
+      newPrice,
+      'ingredient'
+    );
   };
 
   return (

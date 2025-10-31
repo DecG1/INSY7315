@@ -5,49 +5,62 @@ import {
   CardContent,
   Typography,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
+  Alert,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
-import { VERIFIED_USERS, REQUIRE_ACCESS_CODE } from "./config.js";
+import { Eye, EyeOff } from "lucide-react";
+import { authenticateUser } from "./userService.js";
 import { setSession } from "./sessionService.js";
 import { logLogin } from "./auditService.js";
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
 
 export default function LoginPage({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("Manager");
-  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const normalized = email.trim().toLowerCase();
-    if (!VERIFIED_USERS.includes(normalized)) {
-      setError("This user is not allowed to access the app.");
-      await logLogin(normalized, false);
-      return;
-    }
-
-    if (REQUIRE_ACCESS_CODE) {
-      const required = import.meta.env.VITE_APP_ACCESS_CODE;
-      if (!required || code !== required) {
-        setError("Invalid access code.");
-        await logLogin(normalized, false);
+    try {
+      // Authenticate user with email and password
+      const user = await authenticateUser(email, password);
+      
+      if (!user) {
+        // Log failed login attempt
+        await logLogin(email, false);
+        setError("Invalid email or password. Please try again.");
+        setLoading(false);
         return;
       }
-    }
 
-    await setSession({ email: normalized, role });
-    await logLogin(normalized, true);
-    if (onLoginSuccess) {
-      onLoginSuccess();
+      // Create session with authenticated user data
+      await setSession({ 
+        email: user.email, 
+        role: user.role,
+        userId: user.id 
+      });
+      
+      // Log successful login
+      await logLogin(user.email, true);
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+      
+      // Force reload to trigger App to re-check session
+      window.location.reload();
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("An error occurred during login. Please try again.");
+      setLoading(false);
     }
-    // Force reload to trigger App to re-check session
-    window.location.reload();
   };
 
   return (
@@ -104,93 +117,94 @@ export default function LoginPage({ onLoginSuccess }) {
           <Typography
             variant="body2"
             align="center"
-            sx={{ mb: 2, color: "#7f8c8d" }}
+            sx={{ mb: 2, color: "#64748b", fontWeight: 500 }}
           >
-            Sign in to access your dashboard
+            Sign in to your account
           </Typography>
 
-          <TextField
-            label="Email"
-            variant="outlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            fullWidth
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "12px",
-              },
-            }}
-          />
-
-          <FormControl fullWidth>
-            <InputLabel>Your Role</InputLabel>
-            <Select
-              label="Your Role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              sx={{
-                borderRadius: "12px",
-              }}
-            >
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Manager">Manager</MenuItem>
-              <MenuItem value="Staff">Staff</MenuItem>
-            </Select>
-          </FormControl>
-
-          {REQUIRE_ACCESS_CODE && (
-            <TextField
-              label="Access Code"
-              type="password"
-              variant="outlined"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              fullWidth
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "12px",
-                },
-              }}
-            />
-          )}
-
           {error && (
-            <Typography
-              variant="body2"
-              color="error"
-              align="center"
-              sx={{
-                mt: 1,
-                p: 1.5,
-                bgcolor: "#ffebee",
-                borderRadius: "8px",
-              }}
-            >
+            <Alert severity="error" sx={{ borderRadius: 2 }}>
               {error}
-            </Typography>
+            </Alert>
           )}
 
-          <Button
-            variant="contained"
-            size="large"
-            sx={{
-              mt: 2,
-              py: 1.5,
-              fontWeight: 600,
-              borderRadius: "12px",
-              background: "linear-gradient(135deg, #0078d7 0%, #005fa3 100%)",
-              textTransform: "none",
-              fontSize: "16px",
-              boxShadow: "0 4px 15px rgba(0, 120, 215, 0.3)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #005fa3 0%, #004578 100%)",
-                boxShadow: "0 6px 20px rgba(0, 120, 215, 0.4)",
-              },
-            }}
-            onClick={handleLogin}
-          >
-            Sign In
-          </Button>
+          <form onSubmit={handleLogin}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              <TextField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+                required
+                autoFocus
+                disabled={loading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
+              />
+
+              <TextField
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                required
+                disabled={loading}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        disabled={loading}
+                      >
+                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                  },
+                }}
+              />
+
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                size="large"
+                disabled={loading}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  mt: 1,
+                }}
+              >
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </Box>
+          </form>
+
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(139, 0, 0, 0.05)', borderRadius: 2 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>
+              Default Accounts:
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+              Admin: admin@restaurant.com / Admin123!
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Manager: manager@restaurant.com / Manager123!
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
     </Box>

@@ -29,6 +29,7 @@ import { listRecipes, addRecipe, deleteRecipe } from "./recipesService.js";
 import { listInventory } from "./inventoryService.js";
 import { cookRecipe } from "./kitchenService.js";
 import { toBaseQty } from "./units.js";
+import { logRecipeCreated, logRecipeDeleted } from "./auditService.js";
 
 // ---- simple unit conversion helpers (kept local to this file for UX hints) ----
 const normalizeUnit = (u = "") => u.toLowerCase();
@@ -126,7 +127,16 @@ export default function RecipesPage() {
 
   async function handleSaveRecipe() {
     const payload = { ...newRecipe, cost: estCost };
-    await addRecipe(payload);
+    const addedRecipe = await addRecipe(payload);
+    
+    // Log recipe creation to audit trail
+    await logRecipeCreated(
+      addedRecipe.name,
+      addedRecipe.type,
+      addedRecipe.ingredients?.length || 0,
+      estCost
+    );
+    
     setRows(await listRecipes());
     // reset basic fields
     setNewRecipe({
@@ -139,7 +149,20 @@ export default function RecipesPage() {
   }
 
   async function handleDeleteRecipe(id) {
+    // Get recipe details before deletion for audit log
+    const recipe = rows.find(r => r.id === id);
+    
     await deleteRecipe(id);
+    
+    // Log recipe deletion to audit trail
+    if (recipe) {
+      await logRecipeDeleted(
+        recipe.name,
+        recipe.type,
+        recipe.ingredients?.length || 0
+      );
+    }
+    
     setRows(await listRecipes());
   }
 

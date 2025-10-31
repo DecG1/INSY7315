@@ -4,6 +4,7 @@ import theme from "./theme.js";
 import LoginPage from "./LoginPage.jsx";
 import AppShell from "./AppShell.jsx";
 import { getSession, clearSession } from "./sessionService.js";
+import { initializeDefaultUsers } from "./userService.js";
 import { HintsProvider } from "./HintsContext.jsx";
 import { ThemeProvider as CustomThemeProvider } from "./ThemeContext.jsx"; // Custom theme provider with dark mode support
 
@@ -15,9 +16,12 @@ export default function App() {
   console.log("App component rendering, loading:", loading, "session:", session);
 
   useEffect(() => {
-    console.log("useEffect running - checking session...");
+    console.log("useEffect running - checking session and initializing users...");
     (async () => {
       try {
+        // Initialize default users if none exist
+        await initializeDefaultUsers();
+        
         const s = await getSession();
         console.log("Session retrieved:", s);
         setSession(s);
