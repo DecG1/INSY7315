@@ -27,6 +27,9 @@ export default function Dashboard({ onNavigate }) {
   const [notifications, setNotifications] = useState([]); // Recent notifications
   const [orders, setOrders] = useState([]); // Order history for sales analysis
   const [showOrdersDialog, setShowOrdersDialog] = useState(false);
+  const [inventoryList, setInventoryList] = useState([]);
+  const [showInventoryDialog, setShowInventoryDialog] = useState(false);
+  const [showExpiringDialog, setShowExpiringDialog] = useState(false);
   
   // Analytics filters
   const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // all, 7days, 30days, 90days
@@ -58,7 +61,7 @@ export default function Dashboard({ onNavigate }) {
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [ic, rc, salesData, ot, es, notifs, orderHistory] = await Promise.all([
+      const [ic, rc, salesData, ot, es, notifs, orderHistory, invList] = await Promise.all([
         countInventory(),
         countRecipes(),
         fetchSalesData(period), // Fetch sales for current period
@@ -66,6 +69,7 @@ export default function Dashboard({ onNavigate }) {
         countExpiringSoon(7), // items expiring within next 7 days
         listNotifications(), // Fetch recent notifications
         getOrderHistory(), // Fetch order history for analytics
+        db.inventory?.toArray?.() ?? [], // Fetch full inventory list
       ]);
       setInvCount(ic);
       setRecipeCount(rc);
@@ -75,6 +79,7 @@ export default function Dashboard({ onNavigate }) {
       setExpiringSoon(es);
       setNotifications(notifs.slice(0, 5)); // Keep only 5 most recent
       setOrders(orderHistory || []); // Store order history
+  setInventoryList(invList || []);
       
       // Calculate today's revenue based on period context
       // For weekly: find today's day of week (Sun-Sat)
@@ -274,7 +279,13 @@ export default function Dashboard({ onNavigate }) {
       {/* Metric cards */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
-          <MetricCard title="Low Stock Items" value={invCount} note="Total inventory items" icon={AlertTriangle} />
+          <MetricCard 
+            title="Low Stock Items" 
+            value={invCount} 
+            note="Total inventory items" 
+            icon={AlertTriangle}
+            onClick={() => setShowInventoryDialog(true)}
+          />
         </Grid>
         <Grid item xs={12} md={3}>
           <MetricCard 
@@ -286,7 +297,13 @@ export default function Dashboard({ onNavigate }) {
           />
         </Grid>
         <Grid item xs={12} md={3}>
-          <MetricCard title="Expiring Soon" value={expiringSoon} note="Next 7 days" icon={PackageX} />
+          <MetricCard 
+            title="Expiring Soon" 
+            value={expiringSoon} 
+            note="Next 7 days" 
+            icon={PackageX}
+            onClick={() => setShowExpiringDialog(true)}
+          />
         </Grid>
         <Grid item xs={12} md={3}>
           <MetricCard title="Daily Revenue" value={currency(revenueToday)} note="From local sales table" icon={DollarSign} />
@@ -349,6 +366,91 @@ export default function Dashboard({ onNavigate }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowOrdersDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Inventory Dialog */}
+      <Dialog open={showInventoryDialog} onClose={() => setShowInventoryDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Inventory Items</DialogTitle>
+        <DialogContent dividers>
+          {inventoryList.length === 0 ? (
+            <Typography color="text.secondary">No inventory items found.</Typography>
+          ) : (
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell align="right">Quantity</TableCell>
+                  <TableCell align="right">Unit</TableCell>
+                  <TableCell align="right">Expiry</TableCell>
+                  <TableCell align="right">Cost</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {inventoryList.map((row) => (
+                  <TableRow key={row.id ?? row.name}>
+                    <TableCell>{row.name}</TableCell>
+                    <TableCell align="right">{row.qty}</TableCell>
+                    <TableCell align="right">{row.unit}</TableCell>
+                    <TableCell align="right">{row.expiry ? new Date(row.expiry).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell align="right">{currency(Number(row.cost || 0))}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowInventoryDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Expiring Soon Dialog */}
+      <Dialog open={showExpiringDialog} onClose={() => setShowExpiringDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Expiring Within 7 Days</DialogTitle>
+        <DialogContent dividers>
+          {(() => {
+            const now = new Date();
+            const soonItems = (inventoryList || []).filter((r) => {
+              if (!r?.expiry) return false;
+              const d = new Date(r.expiry);
+              if (isNaN(d.getTime())) return false;
+              const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+              return days <= 7 && days >= 0;
+            }).sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+            if (soonItems.length === 0) return <Typography color="text.secondary">No items expiring within 7 days.</Typography>;
+            return (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell align="right">Qty</TableCell>
+                    <TableCell align="right">Unit</TableCell>
+                    <TableCell align="right">Expiry</TableCell>
+                    <TableCell align="right">Days Left</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {soonItems.map((r) => {
+                    const d = new Date(r.expiry);
+                    const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+                    return (
+                      <TableRow key={r.id ?? r.name}>
+                        <TableCell>{r.name}</TableCell>
+                        <TableCell align="right">{r.qty}</TableCell>
+                        <TableCell align="right">{r.unit}</TableCell>
+                        <TableCell align="right">{d.toLocaleDateString()}</TableCell>
+                        <TableCell align="right">{days}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowExpiringDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
