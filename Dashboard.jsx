@@ -11,15 +11,16 @@ import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend } from "recharts";
-import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications, getOrderHistory } from "./analyticsService.js";
+import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, countOrdersToday, countExpiringSoon, listNotifications, getOrderHistory, countLowStock } from "./analyticsService.js";
 import { liveQuery } from "dexie";
 import { db } from "./db.js";
-import { quickSeed } from "./seedData.js";
+import { convertQty, baseUnit } from "./units.js";
 
 export default function Dashboard({ onNavigate }) {
   const [invCount, setInvCount] = useState(0);
   const [recipeCount, setRecipeCount] = useState(0);
   const [expiringSoon, setExpiringSoon] = useState(0); // number of items expiring within threshold
+  const [lowStockCount, setLowStockCount] = useState(0);
   const [ordersToday, setOrdersToday] = useState(0);
   const [revenueToday, setRevenueToday] = useState(0);
   const [chartData, setChartData] = useState([]);                 // chart data from DB
@@ -33,7 +34,6 @@ export default function Dashboard({ onNavigate }) {
   const [showExpiringDialog, setShowExpiringDialog] = useState(false);
   const [showRevenueDialog, setShowRevenueDialog] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState('daily');
-  const [isSeeding, setIsSeeding] = useState(false);
   
   // Analytics filters
   const [timePeriodFilter, setTimePeriodFilter] = useState('all'); // all, 7days, 30days, 90days
@@ -65,7 +65,7 @@ export default function Dashboard({ onNavigate }) {
   const fetchData = async () => {
     setIsRefreshing(true);
     try {
-      const [ic, rc, salesData, ot, es, notifs, orderHistory, invList] = await Promise.all([
+      const [ic, rc, salesData, ot, es, notifs, orderHistory, invList, lsc] = await Promise.all([
         countInventory(),
         countRecipes(),
         fetchSalesData(period), // Fetch sales for current period
@@ -74,6 +74,7 @@ export default function Dashboard({ onNavigate }) {
         listNotifications(), // Fetch recent notifications
         getOrderHistory(), // Fetch order history for analytics
         db.inventory?.toArray?.() ?? [], // Fetch full inventory list
+        countLowStock(), // Low stock items
       ]);
       setInvCount(ic);
       setRecipeCount(rc);
@@ -83,7 +84,8 @@ export default function Dashboard({ onNavigate }) {
       setExpiringSoon(es);
       setNotifications(notifs.slice(0, 5)); // Keep only 5 most recent
       setOrders(orderHistory || []); // Store order history
-  setInventoryList(invList || []);
+    setInventoryList(invList || []);
+    setLowStockCount(lsc || 0);
       
       // Calculate today's revenue based on period context
       // For weekly: find today's day of week (Sun-Sat)
@@ -255,6 +257,9 @@ export default function Dashboard({ onNavigate }) {
     return () => sub.unsubscribe();
   }, []);
   
+  // Dialog state for Low Stock list
+  const [showLowStockDialog, setShowLowStockDialog] = useState(false);
+  
   /**
    * Handle period toggle button change
    * Updates the period state which triggers data re-fetch via useEffect
@@ -264,42 +269,6 @@ export default function Dashboard({ onNavigate }) {
   const handlePeriodChange = (event, newPeriod) => {
     if (newPeriod !== null) {
       setPeriod(newPeriod);
-    }
-  };
-
-  /**
-   * Handle seeding the database with sample data
-   */
-  const handleSeedData = async () => {
-    if (confirm('This will clear all existing data and populate the database with sample meals, ingredients, and orders. Continue?')) {
-      setIsSeeding(true);
-      try {
-        await quickSeed();
-      } catch (error) {
-        console.error('Error seeding database:', error);
-        alert('Failed to seed database. Check console for details.');
-      } finally {
-        setIsSeeding(false);
-      }
-    }
-  };
-
-  /**
-   * Handle clearing the database completely
-   */
-  const handleClearDatabase = async () => {
-    if (confirm('⚠️ This will DELETE ALL DATA in the database (inventory, recipes, sales, notifications). This cannot be undone. Are you sure?')) {
-      try {
-        await db.inventory.clear();
-        await db.recipes.clear();
-        await db.sales.clear();
-        await db.notifications.clear();
-        alert('✅ Database cleared successfully!');
-        window.location.reload();
-      } catch (error) {
-        console.error('Error clearing database:', error);
-        alert('Failed to clear database. Check console for details.');
-      }
     }
   };
 
@@ -314,60 +283,28 @@ export default function Dashboard({ onNavigate }) {
       }}
     >
       <Grid container spacing={3}>
-        {/* Database Action Buttons */}
+        {/* Revenue Card - Top Position */}
         <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: -1 }}>
-            <Button
-              variant="outlined"
-              onClick={handleClearDatabase}
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                px: 3,
-                py: 1,
-                borderColor: 'rgba(244, 67, 54, 0.3)',
-                color: '#d32f2f',
-                '&:hover': {
-                  borderColor: '#d32f2f',
-                  backgroundColor: 'rgba(244, 67, 54, 0.05)',
-                },
-              }}
-            >
-              🗑️ Clear Database
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleSeedData}
-              disabled={isSeeding}
-              sx={{
-                borderRadius: '10px',
-                textTransform: 'none',
-                px: 3,
-                py: 1,
-                borderColor: 'rgba(139, 0, 0, 0.3)',
-                color: '#8b0000',
-                '&:hover': {
-                  borderColor: '#8b0000',
-                  backgroundColor: 'rgba(139, 0, 0, 0.05)',
-                },
-              }}
-            >
-              {isSeeding ? 'Seeding Database...' : '🌱 Seed Sample Data'}
-            </Button>
-          </Box>
-        </Grid>
-        
-        {/* Metric cards */}
-        <Grid item xs={12} md={3}>
           <MetricCard 
-            title="Low Stock Items" 
-            value={invCount} 
-            note="Total inventory items" 
-            icon={AlertTriangle}
-            onClick={() => setShowInventoryDialog(true)}
+            title="Daily Revenue" 
+            value={currency(revenueToday)} 
+            note="From local sales table" 
+            icon={DollarSign}
+            onClick={() => { setRevenuePeriod('daily'); setShowRevenueDialog(true); }}
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        
+        {/* Metric cards - Top row */}
+        <Grid item xs={12} sm={6} md={4}>
+          <MetricCard 
+            title="Low Stock Items" 
+            value={lowStockCount} 
+            note="At or below reorder level" 
+            icon={AlertTriangle}
+            onClick={() => setShowLowStockDialog(true)}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={4}>
           <MetricCard 
             title="Orders Today" 
             value={ordersToday} 
@@ -376,22 +313,13 @@ export default function Dashboard({ onNavigate }) {
             onClick={() => setShowOrdersDialog(true)}
           />
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} sm={6} md={4}>
           <MetricCard 
             title="Expiring Soon" 
             value={expiringSoon} 
             note="Next 7 days" 
             icon={PackageX}
             onClick={() => setShowExpiringDialog(true)}
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <MetricCard 
-            title="Daily Revenue" 
-            value={currency(revenueToday)} 
-            note="From local sales table" 
-            icon={DollarSign}
-            onClick={() => { setRevenuePeriod('daily'); setShowRevenueDialog(true); }}
           />
         </Grid>
 
@@ -462,6 +390,88 @@ export default function Dashboard({ onNavigate }) {
         <DialogActions sx={{ p: 2.5 }}>
           <Button 
             onClick={() => setShowOrdersDialog(false)} 
+            sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Low Stock Dialog */}
+      <Dialog 
+        open={showLowStockDialog} 
+        onClose={() => setShowLowStockDialog(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+          }
+        }}
+      >
+        <DialogTitle sx={{ pb: 2, fontWeight: 700 }}>Low Stock Items</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          {(() => {
+            const low = (inventoryList || []).filter((item) => {
+              const u = (item.unit || '').toLowerCase();
+              const qtyBase = (u === 'kg' || u === 'l') ? Number(item.qty || 0) * 1000 : Number(item.qty || 0);
+              const thresholdBase = (() => {
+                const rb = Number(item.reorderBase || NaN);
+                if (isFinite(rb) && rb > 0) return rb;
+                const legacy = Number(item.reorder || NaN);
+                if (isFinite(legacy) && legacy > 0) {
+                  const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+                  return legacy * factor;
+                }
+                return NaN;
+              })();
+              return isFinite(thresholdBase) && thresholdBase > 0 && qtyBase <= thresholdBase;
+            });
+
+            if (low.length === 0) return <Typography color="text.secondary">No items are currently at or below their reorder level.</Typography>;
+
+            return (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell align="right">Qty</TableCell>
+                    <TableCell align="right">Unit</TableCell>
+                    <TableCell align="right">Reorder At</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {low.map((r) => {
+                    const u = r.unit;
+                    const base = baseUnit(u);
+                    const thresholdBase = (() => {
+                      const rb = Number(r.reorderBase || NaN);
+                      if (isFinite(rb) && rb > 0) return rb;
+                      const legacy = Number(r.reorder || NaN);
+                      if (isFinite(legacy) && legacy > 0) {
+                        const factor = (u?.toLowerCase() === 'kg' || u?.toLowerCase() === 'l') ? 1000 : 1;
+                        return legacy * factor;
+                      }
+                      return NaN;
+                    })();
+                    const reorderDisplay = isFinite(thresholdBase) ? (convertQty(thresholdBase, base, u) ?? NaN) : NaN;
+                    return (
+                      <TableRow key={r.id ?? r.name}>
+                        <TableCell>{r.name}</TableCell>
+                        <TableCell align="right">{r.qty}</TableCell>
+                        <TableCell align="right">{u}</TableCell>
+                        <TableCell align="right">{isFinite(reorderDisplay) ? `${reorderDisplay.toFixed(2)} ${u}` : '-'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            );
+          })()}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button 
+            onClick={() => setShowLowStockDialog(false)} 
             sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
           >
             Close
@@ -1052,7 +1062,7 @@ export default function Dashboard({ onNavigate }) {
           </Card>
         </Grid>
 
-        {/* Notifications Panel */}
+        {/* Notifications Panel - Full Width Below */}
         <Grid item xs={12} lg={12}>
           <Card
             sx={{

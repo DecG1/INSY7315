@@ -159,6 +159,37 @@ export async function countExpiringSoon(withinDays = 7) {
   return count;
 }
 
+/**
+ * Count inventory items that are at or below their reorder threshold.
+ * Threshold is unit-aware: prefer item.reorderBase (base units),
+ * else fall back to legacy `reorder` converted to base units.
+ */
+export async function countLowStock() {
+  const rows = await (db.inventory?.toArray?.() ?? []);
+  let count = 0;
+  for (const item of rows) {
+    const u = (item.unit || '').toLowerCase();
+    // Convert quantity to base units (g/ml/ea) using simple factors matching units.js base mapping
+    // For kg/l we multiply by 1000; for others, 1:1 to their base.
+    const qtyBase = (() => {
+      const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+      return Number(item.qty || 0) * factor;
+    })();
+    const thresholdBase = (() => {
+      const rb = Number(item.reorderBase || NaN);
+      if (isFinite(rb) && rb > 0) return rb;
+      const legacy = Number(item.reorder || NaN);
+      if (isFinite(legacy) && legacy > 0) {
+        const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+        return legacy * factor;
+      }
+      return NaN;
+    })();
+    if (isFinite(thresholdBase) && thresholdBase > 0 && qtyBase <= thresholdBase) count++;
+  }
+  return count;
+}
+
   /**
    * Get complete order/sales history
    * Returns all sales records with their items for analytics
