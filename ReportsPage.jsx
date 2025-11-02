@@ -109,11 +109,25 @@ export default function ReportsPage() {
       return days <= 7 && days >= 0;
     }).length;
 
-    // Low stock items (items below reorder threshold)
+    // Low stock items (items below reorder threshold), unit-aware
     const lowStockCount = inv.filter(item => {
-      const qty = Number(item.qty || 0);
-      const reorder = Number(item.reorder || 0);
-      return reorder > 0 && qty <= reorder;
+      const qtyBase = (() => {
+        const u = (item.unit || '').toLowerCase();
+        const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+        return Number(item.qty || 0) * factor;
+      })();
+      const thresholdBase = (() => {
+        const rb = Number(item.reorderBase || NaN);
+        if (isFinite(rb) && rb > 0) return rb;
+        const legacy = Number(item.reorder || NaN);
+        if (isFinite(legacy) && legacy > 0) {
+          const u = (item.unit || '').toLowerCase();
+          const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+          return legacy * factor;
+        }
+        return NaN;
+      })();
+      return isFinite(thresholdBase) && thresholdBase > 0 && qtyBase <= thresholdBase;
     }).length;
 
     // Package report data

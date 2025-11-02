@@ -1,7 +1,15 @@
 // inventoryService.js
+// Purpose: CRUD for inventory items and maintenance of derived fields.
+// Key concept: We store the TOTAL batch cost as provided by the user
+// (e.g., R200 for 20 kg) and derive a normalized price-per-unit (ppu)
+// in base units (g/ml/ea). All recipe costing multiplies required base
+// quantity by ppu for correctness and consistency.
 import { db } from "./db.js";
 import { toKey, baseUnit, CONV } from "./units.js";
 
+/**
+ * List all inventory items ordered by name.
+ */
 export const listInventory = () => db.inventory.orderBy("name").toArray();
 
 /**
@@ -33,6 +41,8 @@ export const addInventory = async (item) => {
 
 /**
  * Update item; recompute ppu if qty, unit, or cost changed.
+ * Rationale: ppu must always reflect current quantity×unit and total cost
+ * to keep downstream costing correct.
  */
 export const updateInventory = async (id, patch = {}) => {
   const current = await db.inventory.get(id);
@@ -50,4 +60,7 @@ export const updateInventory = async (id, patch = {}) => {
   return db.inventory.update(id, next);
 };
 
+/**
+ * Delete an inventory item by ID.
+ */
 export const deleteInventory = (id) => db.inventory.delete(id);

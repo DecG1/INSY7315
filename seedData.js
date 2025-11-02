@@ -1,13 +1,32 @@
 // seedData.js
-// Seed the database with sample data for demonstration purposes
+// Purpose: Populate the app with realistic inventory, recipes, and sales data
+// for demos and testing. Rationale:
+//  - Inventory items are added with TOTAL batch cost; the service derives ppu.
+//  - Recipes are linked to inventory by ID (invId) to avoid name mismatches.
+//  - Recipe cost is computed using base units (g/ml/ea) × ppu for accuracy.
 
 import { db } from "./db.js";
 import { addRecipe } from "./recipesService.js";
 import { addInventory } from "./inventoryService.js";
+import { toKey, CONV } from "./units.js";
+
+/**
+ * Helper function to get date n days from now as ISO string
+ */
+/**
+ * Helper: ISO timestamp N days from now.
+ * Using ISO strings keeps Dexie sort/filter simple without Date objects.
+ */
+function getDateDaysFromNow(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+}
 
 /**
  * Sample inventory items with realistic pricing and quantities
  */
+// Seed inventory: name, qty, unit, expiry, TOTAL cost
 const sampleInventory = [
   // Proteins
   { name: "Chicken Breast", qty: 15, unit: "kg", expiry: getDateDaysFromNow(14), cost: 85.00, category: "Protein" },
@@ -69,6 +88,7 @@ const sampleInventory = [
 /**
  * Sample recipes with ingredients
  */
+// Seed recipes: ingredients are name-based here, then mapped to invId below
 const sampleRecipes = [
   {
     name: "Margherita Pizza",
@@ -253,7 +273,7 @@ function generateSampleOrders() {
       total += variation;
       
       orders.push({
-        date: orderDate.toISOString(),
+        date: orderDate,  // Already an ISO string from getDateDaysFromNow()
         amount: Math.max(0, total),
         cost: total * 0.35, // Assume 35% cost
         items: items,
@@ -262,15 +282,6 @@ function generateSampleOrders() {
   }
   
   return orders;
-}
-
-/**
- * Helper function to get date n days from now
- */
-function getDateDaysFromNow(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date;
 }
 
 /**
@@ -290,11 +301,11 @@ export async function seedDatabase() {
     console.log("📦 Seeding inventory items...");
     for (const item of sampleInventory) {
       await addInventory({
-        name: item.name,
-        qty: item.qty,
-        unit: item.unit,
-        expiry: item.expiry,
-        cost: item.cost,
+        name: item.name,       // stored in lowercase key internally by service
+        qty: item.qty,         // purchase quantity (e.g., 20 kg)
+        unit: item.unit,       // purchase unit (kg/l/ea)
+        expiry: item.expiry,   // ISO string for easier formatting
+        cost: item.cost,       // TOTAL batch cost; service computes ppu
       });
     }
     console.log(`✅ Added ${sampleInventory.length} inventory items`);
@@ -310,19 +321,25 @@ export async function seedDatabase() {
           ingredients.push({
             invId: invItem.id,
             name: ing.name,
-            quantity: ing.qty,
+            quantity: ing.qty, // retain original qty field name for legacy pages
             unit: ing.unit,
           });
         }
       }
       
-      // Calculate recipe cost
+      // Calculate recipe cost (sum of qty-in-base × ppu)
       let totalCost = 0;
       for (const ing of ingredients) {
         const invItem = await db.inventory.get(ing.invId);
         if (invItem && invItem.ppu) {
-          // Use price per unit (ppu) for accurate cost calculation
-          totalCost += invItem.ppu * ing.quantity;
+          // Convert ingredient quantity to base units (g/ml/ea) to match ppu
+          const unitKey = toKey(ing.unit);
+          // kg->1000, l->1000, g/ml/ea->1
+          const conversionFactor = CONV[unitKey] || 1;
+          const qtyInBaseUnits = ing.quantity * conversionFactor;
+          
+          // ppu is price per base unit (g/ml/ea)
+          totalCost += invItem.ppu * qtyInBaseUnits;
         }
       }
       
@@ -336,7 +353,7 @@ export async function seedDatabase() {
     }
     console.log(`✅ Added ${sampleRecipes.length} recipes`);
     
-    // Seed orders
+    // Seed orders (analytics demo)
     console.log("🧾 Seeding order history...");
     const orders = generateSampleOrders();
     for (const order of orders) {

@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+// MenuBuilderPage: Analyze recipe feasibility based on current inventory.
+// Purpose: For each recipe, determine if it can be made, partially made, or
+// missing ingredients, and estimate servings supported. Uses ID-based linking
+// first (invId) and falls back to name matching for legacy data.
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
@@ -120,10 +124,10 @@ export default function MenuBuilderPage() {
           return;
         }
 
-        // Find matching inventory item
-        const inventoryItem = inventory.find(
-          (inv) => inv.name.toLowerCase() === recipeIng.name.toLowerCase()
-        );
+        // Prefer ID-based linking for accuracy; fallback to name for legacy
+        const inventoryItem = recipeIng.invId
+          ? inventory.find((inv) => inv.id === recipeIng.invId)
+          : inventory.find((inv) => inv.name.toLowerCase() === recipeIng.name.toLowerCase());
 
         if (!inventoryItem) {
           // Ingredient not in inventory

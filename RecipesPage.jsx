@@ -1,4 +1,8 @@
 // RecipesPage.jsx
+// RecipesPage: Create, view, edit, duplicate, delete, and cook recipes.
+// Purpose: Recipes link ingredients to inventory via invId (preferred) so
+// costs and deductions are accurate even if names change. Cost estimation
+// multiplies each ingredient's base-unit qty by the inventory ppu.
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
@@ -19,14 +23,15 @@ import {
   TableCell,
   TableBody,
 } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
-import { ChefHat, PlusCircle, Eye, Pencil, Trash2, X, UtensilsCrossed } from "lucide-react";
+import { ChefHat, PlusCircle, Eye, Pencil, Trash2, X, UtensilsCrossed, Copy } from "lucide-react";
 
 import SectionTitle from "./SectionTitle.jsx";
 import { currency } from "./helpers.js";
 import HintTooltip from "./HintTooltip.jsx";
 
-import { listRecipes, addRecipe, deleteRecipe } from "./recipesService.js";
+import { listRecipes, addRecipe, deleteRecipe, updateRecipe } from "./recipesService.js";
 import { listInventory } from "./inventoryService.js";
 import { cookRecipe } from "./kitchenService.js";
 import { toBaseQty } from "./units.js";
@@ -72,6 +77,41 @@ export default function RecipesPage() {
   // cook settings
   const [servings, setServings] = useState("");
 
+  // view/edit dialogs state
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [editRecipe, setEditRecipe] = useState({ id: null, name: "", type: "Main Course", instructions: "" });
+  
+  // Helper: compute recipe cost using inventory ppu (base-unit price)
+  const computeRecipeCost = (ingredients = []) => {
+    return ingredients.reduce((sum, ing) => {
+      const inv = inventory.find(i => i.id === (ing.invId ?? ing.id));
+      const ppu = Number(inv?.ppu ?? NaN);
+      const qtyBase = toBaseQty(ing.qty ?? ing.quantity ?? 0, ing.unit);
+      if (!isFinite(ppu) || !isFinite(qtyBase)) return sum;
+      return sum + ppu * qtyBase;
+    }, 0);
+  };
+
+  async function handleDuplicate(recipe) {
+    try {
+      const copy = {
+        name: `${recipe.name} (Copy)`,
+        type: recipe.type,
+        instructions: recipe.instructions,
+        ingredients: recipe.ingredients || [],
+      };
+      const computed = computeRecipeCost(copy.ingredients);
+      copy.cost = Number(computed.toFixed(2));
+      await addRecipe(copy);
+      setRows(await listRecipes());
+    } catch (e) {
+      console.error('Failed to duplicate recipe', e);
+      alert('Failed to duplicate recipe. See console for details.');
+    }
+  }
+
   // initial load
   useEffect(() => {
     (async () => {
@@ -93,7 +133,7 @@ export default function RecipesPage() {
     [inventory]
   );
 
-  // cost calculator: sum over ingredients by converting to inventory unit
+  // Cost calculator: sum ingredients by converting to base units (g/ml/ea)
   const calculateCost = () => {
   const total = newRecipe.ingredients.reduce((sum, ing) => {
     const inv = inventory.find(i => i.id === ing.invId);
@@ -150,9 +190,9 @@ export default function RecipesPage() {
   }
 
   async function handleDeleteRecipe(id) {
-    // Get recipe details before deletion for audit log
     const recipe = rows.find(r => r.id === id);
-    
+    const name = recipe?.name || "this recipe";
+    if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
     await deleteRecipe(id);
     
     // Log recipe deletion to audit trail
@@ -181,6 +221,29 @@ export default function RecipesPage() {
             )
             .join("\n")
       );
+    }
+  }
+
+  // ---- Actions: View / Edit ----
+  function handleViewRecipe(recipe) {
+    setSelectedRecipe(recipe);
+    setViewOpen(true);
+  }
+
+  function handleEditClick(recipe) {
+    setEditRecipe({ id: recipe.id, name: recipe.name || "", type: recipe.type || "Main Course", instructions: recipe.instructions || "" });
+    setEditOpen(true);
+  }
+
+  async function handleEditSave() {
+    try {
+      const { id, name, type, instructions } = editRecipe;
+      await updateRecipe(id, { name: name?.trim(), type, instructions });
+      setEditOpen(false);
+      setRows(await listRecipes());
+    } catch (e) {
+      console.error("Failed to update recipe", e);
+      alert("Failed to update recipe. See console for details.");
     }
   }
 
@@ -268,6 +331,7 @@ export default function RecipesPage() {
                       </HintTooltip>
                       <HintTooltip hint="View recipe details and cooking instructions">
                         <IconButton
+                          onClick={() => handleViewRecipe(r)}
                           sx={{
                             '&:hover': {
                               backgroundColor: 'rgba(139, 0, 0, 0.08)',
@@ -279,6 +343,7 @@ export default function RecipesPage() {
                       </HintTooltip>
                       <HintTooltip hint="Edit recipe name, type, ingredients, or instructions">
                         <IconButton
+                          onClick={() => handleEditClick(r)}
                           sx={{
                             '&:hover': {
                               backgroundColor: 'rgba(139, 0, 0, 0.08)',
@@ -286,6 +351,18 @@ export default function RecipesPage() {
                           }}
                         >
                           <Pencil size={16} />
+                        </IconButton>
+                      </HintTooltip>
+                      <HintTooltip hint="Duplicate this recipe">
+                        <IconButton
+                          onClick={() => handleDuplicate(r)}
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(139, 0, 0, 0.08)',
+                            }
+                          }}
+                        >
+                          <Copy size={16} />
                         </IconButton>
                       </HintTooltip>
                       <HintTooltip hint="Permanently delete this recipe">
@@ -324,6 +401,102 @@ export default function RecipesPage() {
           </Table>
         </CardContent>
       </Card>
+      
+      {/* View Recipe Dialog */}
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} fullWidth maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Recipe Details</DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          {selectedRecipe ? (
+            <Box sx={{ display: 'grid', gap: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h6" fontWeight={700}>{selectedRecipe.name}</Typography>
+                <Typography variant="body2" color="text.secondary">{selectedRecipe.type}</Typography>
+              </Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Estimated Cost: {currency(selectedRecipe.cost ?? 0)}
+              </Typography>
+              <Divider />
+              <Typography variant="subtitle2" fontWeight={700}>Ingredients</Typography>
+              <Box sx={{ display: 'grid', gap: 1.25 }}>
+                {(selectedRecipe.ingredients || []).map((ing, i) => (
+                  <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <Typography>{ing.name}</Typography>
+                    <Typography color="text.secondary">
+                      {(ing.qty ?? ing.quantity ?? 0)} {ing.unit}
+                    </Typography>
+                  </Box>
+                ))}
+                {(!selectedRecipe.ingredients || selectedRecipe.ingredients.length === 0) && (
+                  <Typography variant="body2" color="text.secondary">No ingredients listed.</Typography>
+                )}
+              </Box>
+              <Divider />
+              <Typography variant="subtitle2" fontWeight={700}>Instructions</Typography>
+              <Box sx={{
+                p: 2,
+                border: '1px solid rgba(226, 232, 240, 0.8)',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(0,0,0,0.02)'
+              }}>
+                <Typography whiteSpace="pre-wrap" fontSize={14}>
+                  {selectedRecipe.instructions || '—'}
+                </Typography>
+              </Box>
+            </Box>
+          ) : null}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setViewOpen(false)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Recipe Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Edit Recipe</DialogTitle>
+        <DialogContent dividers sx={{ p: 3, display: 'grid', gap: 2 }}>
+          <TextField
+            label="Recipe Name"
+            fullWidth
+            value={editRecipe.name}
+            onChange={(e) => setEditRecipe((r) => ({ ...r, name: e.target.value }))}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+          />
+          <FormControl fullWidth>
+            <InputLabel>Dish Type</InputLabel>
+            <Select
+              label="Dish Type"
+              value={editRecipe.type}
+              onChange={(e) => setEditRecipe((r) => ({ ...r, type: e.target.value }))}
+              sx={{ borderRadius: '10px' }}
+            >
+              <MenuItem value="Main Course">Main Course</MenuItem>
+              <MenuItem value="Starter">Starter</MenuItem>
+              <MenuItem value="Dessert">Dessert</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            label="Cooking Instructions"
+            fullWidth
+            multiline
+            minRows={4}
+            value={editRecipe.instructions}
+            onChange={(e) => setEditRecipe((r) => ({ ...r, instructions: e.target.value }))}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+          />
+          <Typography variant="caption" color="text.secondary">
+            Ingredient editing will be added soon. For now, adjust name, type, and instructions.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setEditOpen(false)} sx={{ borderRadius: '10px', textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleEditSave}
+            sx={{ borderRadius: '10px', textTransform: 'none', boxShadow: '0 2px 8px rgba(139, 0, 0, 0.2)' }}>
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add new recipe form */}
       <Card
@@ -402,6 +575,7 @@ export default function RecipesPage() {
                   border: '1px solid rgba(226, 232, 240, 0.8)',
                 }}
               >
+                {/* Autocomplete binds ingredient to an inventory item by ID */}
                 <Autocomplete
                   options={invOptions}
                   value={selected || null}
@@ -445,6 +619,7 @@ export default function RecipesPage() {
                   }}
                 />
 
+                {/* Unit is typically fixed to the inventory unit when invId is selected */}
                 <FormControl>
                   <InputLabel>Unit</InputLabel>
                   <Select

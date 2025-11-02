@@ -1,4 +1,7 @@
 // Audit Service: Track user actions and system events
+// Purpose: Centralized, non-blocking audit logging for key actions. We log
+// descriptive messages plus a JSON payload of details. Errors during logging
+// are swallowed (logged to console) so they don't break primary workflows.
 import { db } from './db.js';
 import { getSession } from './sessionService.js';
 

@@ -284,6 +284,25 @@ export default function Dashboard({ onNavigate }) {
     }
   };
 
+  /**
+   * Handle clearing the database completely
+   */
+  const handleClearDatabase = async () => {
+    if (confirm('⚠️ This will DELETE ALL DATA in the database (inventory, recipes, sales, notifications). This cannot be undone. Are you sure?')) {
+      try {
+        await db.inventory.clear();
+        await db.recipes.clear();
+        await db.sales.clear();
+        await db.notifications.clear();
+        alert('✅ Database cleared successfully!');
+        window.location.reload();
+      } catch (error) {
+        console.error('Error clearing database:', error);
+        alert('Failed to clear database. Check console for details.');
+      }
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -295,9 +314,27 @@ export default function Dashboard({ onNavigate }) {
       }}
     >
       <Grid container spacing={3}>
-        {/* Seed Data Button */}
+        {/* Database Action Buttons */}
         <Grid item xs={12}>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: -1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mb: -1 }}>
+            <Button
+              variant="outlined"
+              onClick={handleClearDatabase}
+              sx={{
+                borderRadius: '10px',
+                textTransform: 'none',
+                px: 3,
+                py: 1,
+                borderColor: 'rgba(244, 67, 54, 0.3)',
+                color: '#d32f2f',
+                '&:hover': {
+                  borderColor: '#d32f2f',
+                  backgroundColor: 'rgba(244, 67, 54, 0.05)',
+                },
+              }}
+            >
+              🗑️ Clear Database
+            </Button>
             <Button
               variant="outlined"
               onClick={handleSeedData}

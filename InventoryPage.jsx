@@ -1,4 +1,8 @@
 // InventoryPage: displays inventory table, search, and actions
+// InventoryPage: Manage stock levels, costs, and reorder thresholds.
+// Purpose: Users enter TOTAL cost for a purchased quantity; we derive ppu
+// (price per base unit) for consistent costing. Reorder thresholds are stored
+// in base units (reorderBase) with a legacy per-unit value for compatibility.
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Box, Button, TextField, Card, Table, TableHead, TableRow, TableCell,
@@ -15,7 +19,7 @@ import HintTooltip from "./HintTooltip.jsx";
 import { listInventory, addInventory, deleteInventory } from "./inventoryService.js";
 import { updateInventory } from "./inventoryService.js"; // ensure exported
 import { logInventoryAdded, logInventoryDeleted, logInventoryUpdated } from "./auditService.js";
-import { CONV } from "./units.js";
+import { CONV, toBaseQty, convertQty, baseUnit } from "./units.js";
 
 export default function InventoryPage() {
   const [rows, setRows] = useState([]);
@@ -188,6 +192,7 @@ export default function InventoryPage() {
               <TableCell>Expiry Date</TableCell>
               <TableCell>Unit Price (ZAR)</TableCell>
               <TableCell>Total Cost (ZAR)</TableCell>
+              <TableCell>Reorder At</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -199,6 +204,40 @@ export default function InventoryPage() {
                 : (Number(row.cost || 0) / ((Number(row.qty || 0) * factor) || 1));
               const unitPrice = ppu * factor;
 
+              // Compute friendly reorder display using base units
+              const base = baseUnit(row.unit);
+              const rb = Number(row.reorderBase || NaN);
+              let thresholdBase = NaN;
+              if (isFinite(rb) && rb > 0) {
+                thresholdBase = rb;
+              } else {
+                const legacy = Number(row.reorder || NaN);
+                if (isFinite(legacy) && legacy > 0) thresholdBase = toBaseQty(legacy, row.unit);
+              }
+              let reorderDisplay = "—";
+              if (isFinite(thresholdBase) && thresholdBase > 0) {
+                if (base === 'g') {
+                  if (thresholdBase >= 1000) {
+                    const v = thresholdBase / 1000;
+                    reorderDisplay = `${v < 10 ? v.toFixed(2) : v.toFixed(1)} kg`;
+                  } else {
+                    const v = thresholdBase;
+                    reorderDisplay = `${v < 10 ? v.toFixed(0) : v.toFixed(0)} g`;
+                  }
+                } else if (base === 'ml') {
+                  if (thresholdBase >= 1000) {
+                    const v = thresholdBase / 1000;
+                    reorderDisplay = `${v < 10 ? v.toFixed(2) : v.toFixed(1)} l`;
+                  } else {
+                    const v = thresholdBase;
+                    reorderDisplay = `${v < 10 ? v.toFixed(0) : v.toFixed(0)} ml`;
+                  }
+                } else {
+                  // ea
+                  reorderDisplay = `${Math.round(thresholdBase)} ea`;
+                }
+              }
+
               return (
                 <TableRow key={row.id ?? row.name} hover>
                   <TableCell>{row.name}</TableCell>
@@ -207,6 +246,7 @@ export default function InventoryPage() {
                   <TableCell><ExpiryChip dateStr={row.expiry} /></TableCell>
                   <TableCell>{unitPrice.toFixed(2)}</TableCell>
                   <TableCell>{Number(row.cost || 0).toFixed(2)}</TableCell>
+                  <TableCell>{reorderDisplay}</TableCell>
                   <TableCell align="right">
                     <HintTooltip hint="Edit this item's quantity, cost, unit, or expiry date">
                       <IconButton onClick={() => { setCurrent(row); setOpenEdit(true); }}>
@@ -259,8 +299,9 @@ export default function InventoryPage() {
 }
 
 // ---- Add dialog (TOTAL cost) ----
+// Add dialog: captures TOTAL cost and purchase qty/unit; service computes ppu
 function AddInventoryDialog({ open, onClose, onSave }) {
-  const initial = { name: "", qty: 0, unit: "g", expiry: "", cost: 0, reorder: 0 };
+  const initial = { name: "", qty: 0, unit: "g", expiry: "", cost: 0, reorderQty: 0, reorderUnit: "g" };
   const [form, setForm] = useState(initial);
 
   useEffect(() => { if (open) setForm(initial); }, [open]);
@@ -269,6 +310,7 @@ function AddInventoryDialog({ open, onClose, onSave }) {
   const canSave = form.name.trim() && Number(form.qty) > 0 && form.unit;
 
   const factor = CONV[form.unit] ?? 1;
+  // Derived unit price helps users verify their inputs before saving
   const derivedUnitPrice = (Number(form.cost || 0) / ((Number(form.qty || 0) * factor) || 1)) || 0;
 
   return (
@@ -302,18 +344,45 @@ function AddInventoryDialog({ open, onClose, onSave }) {
             Derived unit price: R{derivedUnitPrice.toFixed(4)} per {form.unit}
           </Typography>
         )}
-        <TextField
-          label="Reorder threshold"
-          type="number"
-          inputProps={{ min: 0 }}
-          value={form.reorder === 0 ? "" : form.reorder}
-          onChange={(e) => update("reorder", e.target.value === "" ? 0 : Number(e.target.value))}
-          helperText="Alert when quantity drops to or below this value"
-        />
+        <Box sx={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 2 }}>
+          <TextField
+            label="Reorder threshold"
+            type="number"
+            inputProps={{ min: 0 }}
+            value={form.reorderQty === 0 ? "" : form.reorderQty}
+            onChange={(e) => update("reorderQty", e.target.value === "" ? 0 : Number(e.target.value))}
+            helperText="Enter the quantity at which you'll reorder"
+          />
+          <TextField
+            select
+            label="Unit"
+            value={form.reorderUnit}
+            onChange={(e) => update("reorderUnit", e.target.value)}
+          >
+            {(baseUnit(form.unit) === 'g' ? ["g","kg"] : baseUnit(form.unit) === 'ml' ? ["ml","l"] : ["ea"]).map(u => (
+              <MenuItem key={u} value={u}>{u}</MenuItem>
+            ))}
+          </TextField>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" disabled={!canSave} onClick={() => onSave({ ...form })}>
+        <Button variant="contained" disabled={!canSave} onClick={() => {
+          const reorderBase = toBaseQty(Number(form.reorderQty || 0), form.reorderUnit);
+          const reorderLegacy = isFinite(reorderBase) && baseUnit(form.unit) === baseUnit(form.reorderUnit)
+            ? convertQty(Number(form.reorderQty || 0), form.reorderUnit, form.unit)
+            : 0;
+          const payload = {
+            name: form.name,
+            qty: form.qty,
+            unit: form.unit,
+            expiry: form.expiry,
+            cost: form.cost,
+            reorderBase: Number(reorderBase || 0),
+            reorder: Number(reorderLegacy || 0), // back-compat in inventory.unit
+          };
+          onSave(payload);
+        }}>
           Save
         </Button>
       </DialogActions>
@@ -322,6 +391,8 @@ function AddInventoryDialog({ open, onClose, onSave }) {
 }
 
 // ---- Edit dialog (fix/edit fields + optional top-up) ----
+// Top-up rationale: Users often add small quantities later. We keep cost as
+// a running TOTAL and recalculate ppu from the updated quantity and cost.
 function EditInventoryDialog({ open, item, onClose, onSaved }) {
   // copy current values
   const [form, setForm] = useState({
@@ -330,7 +401,8 @@ function EditInventoryDialog({ open, item, onClose, onSaved }) {
     unit: item.unit || "g",
     expiry: item.expiry || "",
     cost: Number(item.cost || 0),      // total cost so far
-    reorder: Number(item.reorder || 0),
+    reorderQty: 0,
+    reorderUnit: baseUnit(item.unit || 'g'),
   });
 
   // top-up inputs (optional)
@@ -345,7 +417,25 @@ function EditInventoryDialog({ open, item, onClose, onSaved }) {
         unit: item.unit || "g",
         expiry: item.expiry || "",
         cost: Number(item.cost || 0),
-        reorder: Number(item.reorder || 0),
+        // default reorder display from stored base or legacy
+        reorderQty: (() => {
+          const rb = Number(item.reorderBase || NaN);
+          const defUnit = baseUnit(item.unit || 'g');
+          const showUnit = defUnit;
+          // store unit selection
+          // convert stored base or legacy reorder to selected unit
+          if (isFinite(rb) && rb > 0) {
+            return convertQty(rb, defUnit, showUnit);
+          }
+          const legacy = Number(item.reorder || NaN); // in inventory.unit
+          if (isFinite(legacy) && legacy > 0) {
+            // convert legacy from inv.unit to base then to showUnit (which equals base -> effectively to base)
+            const base = toBaseQty(legacy, item.unit);
+            return convertQty(base, defUnit, showUnit);
+          }
+          return 0;
+        })(),
+        reorderUnit: baseUnit(item.unit || 'g'),
       });
       setAddQty("");
       setAddCost("");
@@ -367,13 +457,19 @@ function EditInventoryDialog({ open, item, onClose, onSaved }) {
     const nextQty = Number(form.qty || 0) + (isFinite(incQty) ? incQty : 0);
     const nextCost = Number(form.cost || 0) + (isFinite(incCost) ? incCost : 0);
 
+    const reorderBase = toBaseQty(Number(form.reorderQty || 0), form.reorderUnit);
+    const reorderLegacy = isFinite(reorderBase) && baseUnit(form.unit) === baseUnit(form.reorderUnit)
+      ? convertQty(Number(form.reorderQty || 0), form.reorderUnit, form.unit)
+      : 0;
+
     const updatedItem = {
       name: form.name.trim(),
       qty: nextQty,
       unit: form.unit,
       expiry: form.expiry,
       cost: nextCost,          // TOTAL cost (service recomputes ppu)
-      reorder: Number(form.reorder || 0),
+      reorderBase: Number(reorderBase || 0),
+      reorder: Number(reorderLegacy || 0),
     };
 
     await updateInventory(item.id, updatedItem);
@@ -464,13 +560,25 @@ function EditInventoryDialog({ open, item, onClose, onSaved }) {
           </Typography>
         </Box>
 
-        <TextField
-          label="Reorder threshold"
-          type="number"
-          inputProps={{ min: 0 }}
-          value={form.reorder === 0 ? "" : form.reorder}
-          onChange={(e) => update("reorder", e.target.value === "" ? 0 : Number(e.target.value))}
-        />
+        <Box sx={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 2 }}>
+          <TextField
+            label="Reorder threshold"
+            type="number"
+            inputProps={{ min: 0 }}
+            value={form.reorderQty === 0 ? "" : form.reorderQty}
+            onChange={(e) => update("reorderQty", e.target.value === "" ? 0 : Number(e.target.value))}
+          />
+          <TextField
+            select
+            label="Unit"
+            value={form.reorderUnit}
+            onChange={(e) => update("reorderUnit", e.target.value)}
+          >
+            {(baseUnit(form.unit) === 'g' ? ["g","kg"] : baseUnit(form.unit) === 'ml' ? ["ml","l"] : ["ea"]).map(u => (
+              <MenuItem key={u} value={u}>{u}</MenuItem>
+            ))}
+          </TextField>
+        </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
