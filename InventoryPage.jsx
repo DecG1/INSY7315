@@ -3,13 +3,13 @@
 // Purpose: Users enter TOTAL cost for a purchased quantity; we derive ppu
 // (price per base unit) for consistent costing. Reorder thresholds are stored
 // in base units (reorderBase) with a legacy per-unit value for compatibility.
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Box, Button, TextField, Card, Table, TableHead, TableRow, TableCell,
   TableBody, Typography, Tooltip, InputAdornment, Dialog, DialogTitle,
   DialogContent, DialogActions, MenuItem, IconButton
 } from "@mui/material";
-import { PlusCircle, QrCode, Filter, Edit, Search, Boxes, Trash2 } from "lucide-react";
+import { PlusCircle, Filter, Edit, Search, Boxes, Trash2 } from "lucide-react";
 
 import SectionTitle from "./SectionTitle.jsx";
 import ExpiryChip from "./ExpiryChip.jsx";
@@ -20,6 +20,7 @@ import { listInventory, addInventory, deleteInventory } from "./inventoryService
 import { updateInventory } from "./inventoryService.js"; // ensure exported
 import { logInventoryAdded, logInventoryDeleted, logInventoryUpdated } from "./auditService.js";
 import { CONV, toBaseQty, convertQty, baseUnit } from "./units.js";
+import { toCSV, parseCSV, rowsToObjects } from "./csv.js";
 
 export default function InventoryPage() {
   const [rows, setRows] = useState([]);
@@ -28,6 +29,7 @@ export default function InventoryPage() {
 
   const [openEdit, setOpenEdit] = useState(false);
   const [current, setCurrent] = useState(null); // item being edited
+  const fileInputRef = useRef(null);
 
   // load from Dexie
   useEffect(() => {
@@ -64,13 +66,77 @@ export default function InventoryPage() {
     await refresh();
   }
 
+  // --- CSV Export ---
+  function handleExport() {
+    const cols = [
+      { key: "name", header: "name" },
+      { key: "qty", header: "qty" },
+      { key: "unit", header: "unit" },
+      { key: "expiry", header: "expiry" },
+      { key: "cost", header: "cost" },
+      { key: "reorderBase", header: "reorderBase" },
+      { key: "reorder", header: "reorderLegacy" },
+    ];
+    const simple = rows.map(r => ({
+      name: r.name ?? "",
+      qty: r.qty ?? 0,
+      unit: r.unit ?? "",
+      expiry: r.expiry ?? "",
+      cost: r.cost ?? 0,
+      reorderBase: r.reorderBase ?? 0,
+      reorder: r.reorder ?? 0,
+    }));
+    const csv = toCSV(simple, cols);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const today = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `inventory-export-${today}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // --- CSV Import ---
+  async function handleImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = rowsToObjects(parseCSV(text));
+      let imported = 0;
+      for (const r of parsed) {
+        const name = String(r.name || r.Name || "").trim();
+        if (!name) continue;
+        const qty = Number(r.qty ?? r.Quantity ?? 0) || 0;
+        const unit = String(r.unit ?? r.Unit ?? "g");
+        const expiry = String(r.expiry ?? r.Expiry ?? "");
+        const cost = Number(r.cost ?? r.TotalCost ?? 0) || 0;
+        const reorderBase = Number(r.reorderBase ?? r.ReorderBase ?? 0) || 0;
+        const reorder = Number(r.reorderLegacy ?? r.reorder ?? 0) || 0;
+        await addInventory({ name, qty, unit, expiry, cost, reorderBase, reorder });
+        imported++;
+      }
+      await refresh();
+      alert(`Imported ${imported} inventory item(s) from CSV.`);
+    } catch (err) {
+      console.error("CSV import failed", err);
+      alert("CSV import failed. Please check the file format.");
+    } finally {
+      // reset input so selecting the same file again triggers change
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <Box
       sx={{
-        p: 3,
         display: "flex",
         flexDirection: "column",
-        gap: 3,
+        gap: 2,
+        height: '100%',
         animation: 'fadeIn 0.6s ease-in-out',
         '@keyframes fadeIn': {
           from: { opacity: 0, transform: 'translateY(20px)' },
@@ -98,22 +164,11 @@ export default function InventoryPage() {
                 Add New Item
               </Button>
             </HintTooltip>
-            <HintTooltip hint="Scan item barcode to quickly add to inventory (coming soon)">
-              <Button
-                variant="outlined"
-                startIcon={<QrCode size={16} />}
-                sx={{
-                  borderRadius: '12px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                Scan New Item
-              </Button>
-            </HintTooltip>
+            {/* Removed Scan New Item button per request */}
             <HintTooltip hint="Export your inventory data to a CSV file for reports or backup">
               <Button
                 variant="outlined"
+                onClick={handleExport}
                 sx={{
                   borderRadius: '12px',
                   textTransform: 'none',
@@ -121,6 +176,19 @@ export default function InventoryPage() {
                 }}
               >
                 Export Inventory
+              </Button>
+            </HintTooltip>
+            <HintTooltip hint="Import inventory from a CSV file (columns: name, qty, unit, expiry, cost, reorderBase)">
+              <Button
+                variant="outlined"
+                onClick={() => fileInputRef.current?.click()}
+                sx={{
+                  borderRadius: '12px',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                Import Inventory
               </Button>
             </HintTooltip>
             <HintTooltip hint="View all items that are out of stock or below minimum quantity">
@@ -138,6 +206,15 @@ export default function InventoryPage() {
             </HintTooltip>
           </Box>
         }
+      />
+
+      {/* hidden file input for CSV import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        onChange={handleImportFile}
+        style={{ display: 'none' }}
       />
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>

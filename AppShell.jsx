@@ -31,19 +31,26 @@ const AppShell = ({ onLogout }) => {
 
   return (
     <Box sx={{
-      minHeight: '100vh',
+      height: '100vh',
       display: 'flex',
       backgroundColor: theme.palette.background.default,
+      overflow: 'hidden',
     }}>
       {/* Sidebar navigation */}
       <Sidebar current={route} setCurrent={setRoute} />
       {/* Main content area */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         {/* Header with logout */}
         <Header onLogout={onLogout} />
         {/* Page content, routed by route key */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
-          <Container maxWidth="xl" sx={{ py: 3 }}>
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'auto',
+          height: 'calc(100vh - 64px)', // Subtract header height
+        }}>
+          <Container maxWidth="xl" sx={{ py: 2, px: 3, height: '100%' }}>
           {route === "dashboard" && <Dashboard onNavigate={setRoute} />}
           {route === "inventory" && <InventoryPage />}
           {route === "scanner" && <ScannerPage />}

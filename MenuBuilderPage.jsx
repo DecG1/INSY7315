@@ -312,7 +312,7 @@ export default function MenuBuilderPage() {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
       <SectionTitle
         icon={Restaurant}
         title="Smart Menu Builder"

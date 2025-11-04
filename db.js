@@ -44,4 +44,17 @@ db.version(4).stores({
   auditLogs: "++id,userId,userEmail,action,timestamp,category",
 });
 
+// v5: add settings store for user preferences and data retention policies
+db.version(5).stores({
+  sessions: "++id,email,role,userId,ts",
+  users: "++id,email,passwordHash,role,createdAt",
+  inventory: "++id,name,qty,unit,expiry,cost",
+  recipes:   "++id,name,type,cost",
+  notifications: "++id,tone,msg,ago",
+  sales: "++id,date,amount,cost",
+  auditLogs: "++id,userId,userEmail,action,timestamp,category",
+  // settings: key-value store for preferences (lowStockAlerts, retentionDays, etc.)
+  settings: "key",
+});
+
 

@@ -15,6 +15,7 @@ import { countInventory, countRecipes, weeklySales, monthlySales, yearlySales, c
 import { liveQuery } from "dexie";
 import { db } from "./db.js";
 import { convertQty, baseUnit } from "./units.js";
+import { addNotificationIfEnabled } from "./settingsService.js";
 
 export default function Dashboard({ onNavigate }) {
   const [invCount, setInvCount] = useState(0);
@@ -84,8 +85,18 @@ export default function Dashboard({ onNavigate }) {
       setExpiringSoon(es);
       setNotifications(notifs.slice(0, 5)); // Keep only 5 most recent
       setOrders(orderHistory || []); // Store order history
-    setInventoryList(invList || []);
-    setLowStockCount(lsc || 0);
+      setInventoryList(invList || []);
+      setLowStockCount(lsc || 0);
+      
+      // Generate expiry warning notification if items are expiring soon
+      if (es > 0) {
+        await addNotificationIfEnabled('expiry', {
+          tone: "error",
+          msg: `${es} item${es !== 1 ? 's' : ''} expiring within 7 days`,
+          ago: "just now",
+          timestamp: Date.now(),
+        });
+      }
       
       // Calculate today's revenue based on period context
       // For weekly: find today's day of week (Sun-Sat)
@@ -275,6 +286,9 @@ export default function Dashboard({ onNavigate }) {
   return (
     <Box
       sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         '@keyframes fadeIn': {
           from: { opacity: 0, transform: 'translateY(30px)' },
@@ -282,7 +296,7 @@ export default function Dashboard({ onNavigate }) {
         },
       }}
     >
-      <Grid container spacing={3}>
+      <Grid container spacing={2}>
         {/* Revenue Card - Top Position */}
         <Grid item xs={12}>
           <MetricCard 

@@ -1,28 +1,64 @@
-
 // NotificationsPage: displays alerts, toggles, and notification history
 import React, { useEffect, useState } from "react";
 import { Box, Grid, Card, CardContent, Typography, Button, Switch, Table, TableHead, TableRow, TableCell, TableBody, Divider } from "@mui/material";
-import { Bell } from "lucide-react";
+import { Bell, Settings as SettingsIcon } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
 import StatusChip from "./StatusChip.jsx";
 import { brandRed } from "./helpers.js";
 import { listNotifications } from "./analyticsService.js";
 import { db } from "./db.js";
 import HintTooltip from "./HintTooltip.jsx";
+import { getSettings } from "./settingsService.js";
 
 /**
  * NotificationsPage
- * - Shows alert toggles, critical/urgent alerts, and notification history
- * - Uses mock data for alert history
+ * - Shows notification preferences (read-only, links to Settings)
+ * - Displays critical/urgent alerts and notification history
+ * - Provides refresh and clear all functionality
  */
 const NotificationsPage = () => {
-  // State for toggling soon-to-expire and low stock alerts
-  const [soon, setSoon] = useState(true);
-  const [lowStock, setLowStock] = useState(true);
-
   // Live notifications from DB
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Settings (read-only display)
+  const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [expiryWarnings, setExpiryWarnings] = useState(true);
+  
+  /**
+   * Calculate relative time from timestamp
+   * @param {number} timestamp - Unix timestamp in milliseconds
+   * @returns {string} Relative time string (e.g., "just now", "5m ago", "2h ago", "3d ago")
+   */
+  const getRelativeTime = (timestamp) => {
+    if (!timestamp) return 'recently';
+    
+    const now = Date.now();
+    const diff = now - timestamp;
+    
+    // Less than 1 minute
+    if (diff < 60000) return 'just now';
+    
+    // Less than 1 hour
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 60) return `${minutes}m ago`;
+    
+    // Less than 24 hours
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    
+    // Days
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    
+    // Months
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months}mo ago`;
+    
+    // Years
+    const years = Math.floor(months / 12);
+    return `${years}y ago`;
+  };
 
   async function refresh() {
     setLoading(true);
@@ -33,8 +69,28 @@ const NotificationsPage = () => {
       setLoading(false);
     }
   }
+  
+  async function loadSettings() {
+    try {
+      const settings = await getSettings();
+      setLowStockAlerts(settings.lowStockAlerts ?? true);
+      setExpiryWarnings(settings.expiryWarnings ?? true);
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+    }
+  }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { 
+    refresh();
+    loadSettings();
+    
+    // Update relative times every minute to keep them current
+    const intervalId = setInterval(() => {
+      setHistory(prev => [...prev]); // Trigger re-render to update relative times
+    }, 60000); // Every minute
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   async function clearAll() {
     await db.notifications.clear();
@@ -79,9 +135,38 @@ const NotificationsPage = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography variant="h6" fontWeight={700} sx={{ mb: 3 }}>
-            Alert Preferences
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" fontWeight={700}>
+              Alert Preferences
+            </Typography>
+            <Button 
+              variant="outlined" 
+              size="small"
+              startIcon={<SettingsIcon size={16} />}
+              onClick={() => window.location.hash = '#/settings'}
+              sx={{ textTransform: 'none' }}
+            >
+              Manage in Settings
+            </Button>
+          </Box>
+          
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: '12px',
+              bgcolor: 'rgba(33, 150, 243, 0.05)',
+              border: '1px solid rgba(33, 150, 243, 0.2)',
+              mb: 3,
+            }}
+          >
+            <Typography variant="body2" color="primary" fontWeight={600} sx={{ mb: 1 }}>
+              ℹ️ Current Notification Settings
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              These settings are managed in the Settings page. Changes made there will affect which notifications you receive.
+            </Typography>
+          </Box>
+          
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Box
@@ -90,32 +175,32 @@ const NotificationsPage = () => {
                   borderRadius: '12px',
                   border: '1px solid',
                   borderColor: 'rgba(0, 0, 0, 0.08)',
-                  bgcolor: soon ? 'rgba(139, 0, 0, 0.02)' : 'transparent',
-                  transition: 'all 0.2s ease-in-out',
+                  bgcolor: expiryWarnings ? 'rgba(139, 0, 0, 0.02)' : 'rgba(0, 0, 0, 0.01)',
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="subtitle1" fontWeight={600}>
                     Expiry Notifications
                   </Typography>
-                  <Switch 
-                    checked={soon} 
-                    onChange={() => setSoon(v => !v)}
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: brandRed,
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: brandRed,
-                      },
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      px: 1.5, 
+                      py: 0.5, 
+                      borderRadius: '6px',
+                      bgcolor: expiryWarnings ? 'rgba(76, 175, 80, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                      color: expiryWarnings ? 'success.main' : 'text.secondary',
+                      fontWeight: 700,
                     }}
-                  />
+                  >
+                    {expiryWarnings ? 'ENABLED' : 'DISABLED'}
+                  </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Get notified about expiring or expired ingredients
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                  Status: {soon ? '✓ Active' : '✗ Disabled'}
+                  Status: {expiryWarnings ? '✓ Active' : '✗ Disabled'}
                 </Typography>
               </Box>
             </Grid>
@@ -126,32 +211,32 @@ const NotificationsPage = () => {
                   borderRadius: '12px',
                   border: '1px solid',
                   borderColor: 'rgba(0, 0, 0, 0.08)',
-                  bgcolor: lowStock ? 'rgba(139, 0, 0, 0.02)' : 'transparent',
-                  transition: 'all 0.2s ease-in-out',
+                  bgcolor: lowStockAlerts ? 'rgba(139, 0, 0, 0.02)' : 'rgba(0, 0, 0, 0.01)',
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="subtitle1" fontWeight={600}>
                     Low Stock Alerts
                   </Typography>
-                  <Switch 
-                    checked={lowStock} 
-                    onChange={() => setLowStock(v => !v)}
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: brandRed,
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: brandRed,
-                      },
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      px: 1.5, 
+                      py: 0.5, 
+                      borderRadius: '6px',
+                      bgcolor: lowStockAlerts ? 'rgba(76, 175, 80, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                      color: lowStockAlerts ? 'success.main' : 'text.secondary',
+                      fontWeight: 700,
                     }}
-                  />
+                  >
+                    {lowStockAlerts ? 'ENABLED' : 'DISABLED'}
+                  </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   Get notified when inventory drops below threshold
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                  Status: {lowStock ? '✓ Active' : '✗ Disabled'}
+                  Status: {lowStockAlerts ? '✓ Active' : '✗ Disabled'}
                 </Typography>
               </Box>
             </Grid>
@@ -222,7 +307,7 @@ const NotificationsPage = () => {
                         color={isError ? 'error' : 'default'}
                       />
                       <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                        {h.ago || 'Recently'}
+                        {h.timestamp ? getRelativeTime(h.timestamp) : (h.ago || 'Recently')}
                       </Typography>
                     </Box>
                     <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
@@ -348,7 +433,7 @@ const NotificationsPage = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {h.ago || 'Recently'}
+                        {h.timestamp ? getRelativeTime(h.timestamp) : (h.ago || 'Recently')}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">

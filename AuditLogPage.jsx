@@ -95,7 +95,7 @@ const AuditLogPage = () => {
   // Check if user has access
   if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'manager')) {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Alert severity="error">
           Access denied. Only administrators and managers can view audit logs.
         </Alert>

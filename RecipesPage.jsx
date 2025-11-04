@@ -167,26 +167,27 @@ export default function RecipesPage() {
   };
 
   async function handleSaveRecipe() {
-    const payload = { ...newRecipe, cost: estCost };
-    const addedRecipe = await addRecipe(payload);
-    
-    // Log recipe creation to audit trail
-    await logRecipeCreated(
-      addedRecipe.name,
-      addedRecipe.type,
-      addedRecipe.ingredients?.length || 0,
-      estCost
-    );
-    
-    setRows(await listRecipes());
-    // reset basic fields
-    setNewRecipe({
-      name: "",
-      type: "Main Course",
-      instructions: "",
-      ingredients: [],
-    });
-    setEstCost(0);
+    try {
+      // Compute cost on save to ensure it's up to date, even if the user didn't click Calculate
+      const computed = computeRecipeCost(newRecipe.ingredients || []);
+      const costFixed = Number(computed.toFixed(2));
+
+      const payload = { ...newRecipe, cost: costFixed };
+      const id = await addRecipe(payload); // returns new id
+
+      // Log recipe creation with full context (include id)
+      await logRecipeCreated({ ...payload, id });
+
+      // Refresh list and reset form
+      setRows(await listRecipes());
+      setNewRecipe({ name: "", type: "Main Course", instructions: "", ingredients: [] });
+      setEstCost(0);
+
+      alert("Recipe saved successfully.");
+    } catch (e) {
+      console.error("Failed to save recipe", e);
+      alert("Failed to save recipe. Please check ingredients and try again.");
+    }
   }
 
   async function handleDeleteRecipe(id) {
@@ -252,8 +253,8 @@ export default function RecipesPage() {
       sx={{
         display: "grid",
         gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-        gap: 3,
-        p: 3,
+        gap: 2,
+        height: '100%',
         animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
         '@keyframes fadeIn': {
           from: { opacity: 0, transform: 'translateY(30px)' },
