@@ -46,48 +46,53 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Inter"', '"Helvetica Neue"', 'Arial', 'sans-serif'].join(", "),
+    fontSize: 14,
     h4: { 
       fontWeight: 700, 
-      letterSpacing: '-0.5px',
-      fontSize: '2rem',
-      lineHeight: 1.3,
+      letterSpacing: '-0.3px',
+      fontSize: '1.75rem',
+      lineHeight: 1.2,
     },
     h5: { 
       fontWeight: 700, 
-      letterSpacing: '-0.4px',
+      letterSpacing: '-0.2px',
       fontSize: '1.5rem',
-      lineHeight: 1.4,
+      lineHeight: 1.3,
     },
     h6: { 
       fontWeight: 600, 
-      letterSpacing: '-0.2px',
+      letterSpacing: '-0.1px',
       fontSize: '1.25rem',
-      lineHeight: 1.5,
+      lineHeight: 1.4,
     },
     subtitle1: { 
       color: '#64748b',
       fontWeight: 500,
+      fontSize: '1rem',
     },
     subtitle2: {
       fontWeight: 600,
       fontSize: '0.875rem',
     },
     body1: { 
-      letterSpacing: '0.15px',
-      lineHeight: 1.6,
+      letterSpacing: '0.1px',
+      lineHeight: 1.5,
+      fontSize: '0.875rem',
     },
     body2: {
-      letterSpacing: '0.15px',
-      lineHeight: 1.5,
+      letterSpacing: '0.1px',
+      lineHeight: 1.4,
+      fontSize: '0.8125rem',
     },
     button: { 
       fontWeight: 600, 
       textTransform: 'none',
-      letterSpacing: '0.3px',
+      letterSpacing: '0.2px',
+      fontSize: '0.875rem',
     },
     caption: {
       fontSize: '0.75rem',
-      letterSpacing: '0.3px',
+      letterSpacing: '0.2px',
     },
   },
   shape: { borderRadius: 12 },
@@ -158,7 +163,7 @@ const theme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12,
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
           border: '1px solid rgba(226, 232, 240, 0.8)',
           transition: 'box-shadow 0.3s ease-in-out, transform 0.2s ease-in-out',
@@ -168,13 +173,24 @@ const theme = createTheme({
         },
       },
     },
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          padding: '16px',
+          '&:last-child': {
+            paddingBottom: '16px',
+          },
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 8,
           textTransform: 'none',
           fontWeight: 600,
-          padding: '10px 20px',
+          padding: '8px 16px',
+          fontSize: '0.875rem',
           boxShadow: 'none',
           transition: 'all 0.2s ease-in-out',
           '&:hover': {
@@ -184,6 +200,14 @@ const theme = createTheme({
           '&:active': {
             transform: 'translateY(0)',
           },
+        },
+        sizeSmall: {
+          padding: '5px 10px',
+          fontSize: '0.8125rem',
+        },
+        sizeLarge: {
+          padding: '10px 20px',
+          fontSize: '1rem',
         },
         containedPrimary: {
           backgroundColor: brandRed,
@@ -209,17 +233,28 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: { 
-          borderRadius: 8,
+          borderRadius: 6,
           fontWeight: 600,
-          fontSize: '0.8125rem',
+          fontSize: '0.75rem',
+          height: '24px',
+        },
+        sizeSmall: {
+          fontSize: '0.6875rem',
+          height: '20px',
         },
       },
     },
     MuiTextField: {
       styleOverrides: {
         root: {
+          '& .MuiInputBase-root': {
+            fontSize: '0.875rem',
+          },
+          '& .MuiInputLabel-root': {
+            fontSize: '0.875rem',
+          },
           '& .MuiOutlinedInput-root': { 
-            borderRadius: 10,
+            borderRadius: 8,
             transition: 'all 0.2s ease-in-out',
             '&:hover': {
               '& .MuiOutlinedInput-notchedOutline': {
@@ -238,8 +273,11 @@ const theme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: { 
-          paddingTop: 14, 
-          paddingBottom: 14,
+          paddingTop: 8,
+          paddingBottom: 8,
+          paddingLeft: 12,
+          paddingRight: 12,
+          fontSize: '0.875rem',
           borderBottom: '1px solid #f1f5f9',
         },
         head: { 
@@ -248,7 +286,9 @@ const theme = createTheme({
           color: '#475569',
           textTransform: 'uppercase',
           fontSize: '0.75rem',
-          letterSpacing: '0.5px',
+          letterSpacing: '0.3px',
+          paddingTop: 10,
+          paddingBottom: 10,
         },
       },
     },

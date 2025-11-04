@@ -174,7 +174,7 @@ const UserManagementPage = () => {
   // Check if current user is admin
   if (currentUser?.role !== 'admin') {
     return (
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Alert severity="error">
           Access denied. Only administrators can manage users.
         </Alert>

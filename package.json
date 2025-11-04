@@ -6,12 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:desktop": "concurrently -k -r \"npm:dev\" \"npm:electron:wait\"",
+    "electron:wait": "wait-on http://localhost:5173 && electron .",
+    "start:desktop": "electron .",
+    "pack": "vite build && electron-builder --dir",
+    "dist": "vite build && electron-builder"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.2",
+    "bcryptjs": "^3.0.2",
     "dexie": "^4.2.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
@@ -23,6 +29,36 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
-    "vite": "^5.4.20"
+    "concurrently": "^9.0.1",
+    "electron": "^39.0.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^7.1.12",
+    "wait-on": "^7.2.0"
+  },
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.insy7315.app",
+    "productName": "INSY7315",
+    "icon": "logo/logo (2).png",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "!**/*.map"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "logo/logo (2).png"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "logo/logo (2).png"
+    }
   }
 }

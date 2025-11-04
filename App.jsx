@@ -4,9 +4,9 @@ import theme from "./theme.js";
 import LoginPage from "./LoginPage.jsx";
 import AppShell from "./AppShell.jsx";
 import { getSession, clearSession } from "./sessionService.js";
-import { initializeDefaultUsers } from "./userService.js";
 import { HintsProvider } from "./HintsContext.jsx";
 import { ThemeProvider as CustomThemeProvider } from "./ThemeContext.jsx"; // Custom theme provider with dark mode support
+import { runCleanupTasks } from "./settingsService.js";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -16,21 +16,39 @@ export default function App() {
   console.log("App component rendering, loading:", loading, "session:", session);
 
   useEffect(() => {
-    console.log("useEffect running - checking session and initializing users...");
+    console.log("useEffect running - checking session...");
     (async () => {
       try {
-        // Initialize default users if none exist
-        await initializeDefaultUsers();
-        
         const s = await getSession();
         console.log("Session retrieved:", s);
         setSession(s);
+        
+        // Run cleanup tasks on app startup
+        if (s) {
+          console.log("Running cleanup tasks...");
+          const result = await runCleanupTasks();
+          console.log(`Cleanup complete: ${result.auditLogs} audit logs, ${result.notifications} notifications deleted`);
+        }
       } catch (err) {
         console.error("Error getting session:", err);
         // Don't show error, just continue without session
         setSession(null);
       }
     })();
+    
+    // Set up periodic cleanup (runs daily at midnight or every 24 hours)
+    const cleanupInterval = setInterval(async () => {
+      try {
+        console.log("Running scheduled cleanup...");
+        const result = await runCleanupTasks();
+        console.log(`Scheduled cleanup complete: ${result.auditLogs} audit logs, ${result.notifications} notifications deleted`);
+      } catch (err) {
+        console.error("Error during scheduled cleanup:", err);
+      }
+    }, 24 * 60 * 60 * 1000); // Run every 24 hours
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(cleanupInterval);
   }, []);
 
   const handleLogout = async () => {

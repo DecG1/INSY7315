@@ -1,62 +1,116 @@
-import React, { useState } from "react";
-import { Box, Card, CardContent, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, TextField, IconButton, Divider, Grid } from "@mui/material";
-import { Receipt, Plus, Trash2, Save } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  Box, Card, CardContent, Typography, Button,
+  TextField, IconButton, Grid, Divider, 
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  FormControl, InputLabel, Select, MenuItem
+} from "@mui/material";
+import { Receipt, Plus, Trash2, Save, ChefHat } from "lucide-react";
 import SectionTitle from "./SectionTitle.jsx";
 import { currency } from "./helpers.js";
 import { addSale } from "./analyticsService.js";
 import HintTooltip from "./HintTooltip.jsx";
 import { logOrderCreated } from "./auditService.js";
+import { listRecipes } from "./recipesService.js";
+import { cookRecipe } from "./kitchenService.js";
+import { listInventory, updateInventory } from "./inventoryService.js";
+import { toBaseQty } from "./units.js";
+import { db } from "./db.js";
+import { addNotificationIfEnabled } from "./settingsService.js";
 
 const ScannerPage = () => {
-  // Order items organized by category
   const [food, setFood] = useState([]);
   const [drinks, setDrinks] = useState([]);
   const [dessert, setDessert] = useState([]);
   const [other, setOther] = useState([]);
-  
-  // Payment fields
   const [amountPaid, setAmountPaid] = useState("");
-  
-  // Add item to category
+  const [recipes, setRecipes] = useState([]);
+  const [recipeDialogOpen, setRecipeDialogOpen] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [recipeQuantity, setRecipeQuantity] = useState("1");
+  const [recipePriceMarkup, setRecipePriceMarkup] = useState("50"); // default 50% markup
+  const [targetCategory, setTargetCategory] = useState("food");
+
+  useEffect(() => {
+    (async () => {
+      const r = await listRecipes();
+      setRecipes(r);
+    })();
+  }, []);
+
   const addItem = (category) => {
-    const newItem = { id: Date.now(), name: "", price: "" };
-    switch(category) {
-      case 'food': setFood([...food, newItem]); break;
-      case 'drinks': setDrinks([...drinks, newItem]); break;
-      case 'dessert': setDessert([...dessert, newItem]); break;
-      case 'other': setOther([...other, newItem]); break;
+    const newItem = { id: Date.now(), name: "", price: "", quantity: "1" };
+    switch (category) {
+      case "food": setFood([...food, newItem]); break;
+      case "drinks": setDrinks([...drinks, newItem]); break;
+      case "dessert": setDessert([...dessert, newItem]); break;
+      case "other": setOther([...other, newItem]); break;
     }
   };
-  
-  // Update item field
+
+  const openRecipeSelector = (category) => {
+    setTargetCategory(category);
+    setRecipeDialogOpen(true);
+    setSelectedRecipe(recipes[0] || null);
+    setRecipeQuantity("1");
+    setRecipePriceMarkup("50");
+  };
+
+  const addRecipeToOrder = () => {
+    if (!selectedRecipe) return;
+    const qty = Number(recipeQuantity) || 1;
+    const markup = Number(recipePriceMarkup) || 0;
+    const costPerServing = Number(selectedRecipe.cost) || 0;
+    const pricePerServing = costPerServing * (1 + markup / 100);
+    
+    // Add as a single line item with quantity
+    const newItem = {
+      id: Date.now(),
+      name: selectedRecipe.name,
+      price: pricePerServing.toFixed(2),
+      quantity: qty.toString(),
+      recipeId: selectedRecipe.id,
+      servings: 1 // servings per unit
+    };
+    
+    switch (targetCategory) {
+      case "food": setFood(prev => [...prev, newItem]); break;
+      case "drinks": setDrinks(prev => [...prev, newItem]); break;
+      case "dessert": setDessert(prev => [...prev, newItem]); break;
+      case "other": setOther(prev => [...prev, newItem]); break;
+    }
+    
+    setRecipeDialogOpen(false);
+  };
+
   const updateItem = (category, id, field, value) => {
-    const updateFn = (items) => items.map(item => 
-      item.id === id ? { ...item, [field]: value } : item
-    );
-    switch(category) {
-      case 'food': setFood(updateFn(food)); break;
-      case 'drinks': setDrinks(updateFn(drinks)); break;
-      case 'dessert': setDessert(updateFn(dessert)); break;
-      case 'other': setOther(updateFn(other)); break;
+    const updateFn = (items) =>
+      items.map((item) => (item.id === id ? { ...item, [field]: value } : item));
+    switch (category) {
+      case "food": setFood(updateFn(food)); break;
+      case "drinks": setDrinks(updateFn(drinks)); break;
+      case "dessert": setDessert(updateFn(dessert)); break;
+      case "other": setOther(updateFn(other)); break;
     }
   };
-  
-  // Remove item
+
   const removeItem = (category, id) => {
-    const filterFn = (items) => items.filter(item => item.id !== id);
-    switch(category) {
-      case 'food': setFood(filterFn(food)); break;
-      case 'drinks': setDrinks(filterFn(drinks)); break;
-      case 'dessert': setDessert(filterFn(dessert)); break;
-      case 'other': setOther(filterFn(other)); break;
+    const filterFn = (items) => items.filter((item) => item.id !== id);
+    switch (category) {
+      case "food": setFood(filterFn(food)); break;
+      case "drinks": setDrinks(filterFn(drinks)); break;
+      case "dessert": setDessert(filterFn(dessert)); break;
+      case "other": setOther(filterFn(other)); break;
     }
   };
-  
-  // Calculate totals
-  const calculateCategoryTotal = (items) => {
-    return items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-  };
-  
+
+  const calculateCategoryTotal = (items) =>
+    items.reduce((sum, item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.quantity) || 1;
+      return sum + (price * qty);
+    }, 0);
+
   const foodTotal = calculateCategoryTotal(food);
   const drinksTotal = calculateCategoryTotal(drinks);
   const dessertTotal = calculateCategoryTotal(dessert);
@@ -64,8 +118,7 @@ const ScannerPage = () => {
   const orderTotal = foodTotal + drinksTotal + dessertTotal + otherTotal;
   const paid = Number(amountPaid) || 0;
   const gratuity = paid - orderTotal;
-  
-  // Clear all
+
   const clearDocket = () => {
     setFood([]);
     setDrinks([]);
@@ -73,277 +126,342 @@ const ScannerPage = () => {
     setOther([]);
     setAmountPaid("");
   };
-  
-  // Save order (placeholder for future integration)
+
   const saveDocket = async () => {
     const docket = {
       food, drinks, dessert, other,
       orderTotal, amountPaid: paid, gratuity,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    // Persist as a sale for dashboard/graphs; include line items for analytics
+
     const items = [...food, ...drinks, ...dessert, ...other]
-      .filter(i => i?.name)
-      .map(i => ({ 
+      .filter((i) => i?.name)
+      .map((i) => ({ 
         name: i.name, 
-        price: Number(i.price) || 0,
-        quantity: 1,
+        price: Number(i.price) || 0, 
+        quantity: Number(i.quantity) || 1 
       }));
+
     await addSale({ date: docket.timestamp, amount: orderTotal, cost: 0, items });
-    
-    // Log order creation to audit log
+
     try {
       await logOrderCreated({
-        items: [...food, ...drinks, ...dessert, ...other].map(i => ({ 
-          name: i.name, 
-          price: Number(i.price) || 0 
+        items: [...food, ...drinks, ...dessert, ...other].map((i) => ({
+          name: i.name, price: Number(i.price) || 0,
         })),
-        total: orderTotal,
-        gratuity,
-        amountPaid: paid,
+        total: orderTotal, gratuity, amountPaid: paid,
       });
     } catch (e) {
       console.error("Failed to log order creation:", e);
     }
+
+    // Deduct inventory for recipe-based items AND name-matched items
+    const allItems = [...food, ...drinks, ...dessert, ...other];
+    const failures = [];
+    let deductionCount = 0;
+
+    // Load inventory for name matching
+    const inventory = await listInventory();
+
+    for (const item of allItems) {
+      if (!item.name) continue; // skip empty items
+      
+      const itemQty = Number(item.quantity) || 1;
+
+      // Case 1: Item was added via Recipe button (has recipeId)
+      if (item.recipeId) {
+        const recipe = recipes.find(r => r.id === item.recipeId);
+        if (recipe) {
+          const totalServings = (item.servings || 1) * itemQty;
+          const result = await cookRecipe(recipe, { servings: totalServings });
+          if (!result.ok) {
+            failures.push({
+              name: `${recipe.name} (×${itemQty})`,
+              type: 'recipe',
+              shortages: result.shortages
+            });
+          } else {
+            deductionCount++;
+          }
+        }
+        continue;
+      }
+
+      // Case 2: Manual item - check if name matches a recipe
+      const matchedRecipe = recipes.find(r => 
+        r.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+      );
+      
+      if (matchedRecipe) {
+        const result = await cookRecipe(matchedRecipe, { servings: itemQty });
+        if (!result.ok) {
+          failures.push({
+            name: `${matchedRecipe.name} (×${itemQty}, name-matched)`,
+            type: 'recipe',
+            shortages: result.shortages
+          });
+        } else {
+          deductionCount++;
+        }
+        continue;
+      }
+
+      // Case 3: Manual item - check if name matches an inventory ingredient
+      const matchedIngredient = inventory.find(inv => 
+        inv.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+      );
+
+      if (matchedIngredient) {
+        // Deduct itemQty units of the matched ingredient
+        const currentQty = Number(matchedIngredient.qty || 0);
+        const deductQty = itemQty; // deduct based on order quantity
+        
+        if (currentQty >= deductQty) {
+          try {
+            await updateInventory(matchedIngredient.id, { 
+              qty: currentQty - deductQty 
+            });
+            deductionCount++;
+            
+            // Check if below reorder threshold
+            const newQtyBase = toBaseQty(currentQty - deductQty, matchedIngredient.unit);
+            const thresholdBase = Number(matchedIngredient.reorderBase || 0);
+            
+            if (thresholdBase > 0 && newQtyBase <= thresholdBase) {
+              await addNotificationIfEnabled('lowStock', {
+                tone: "error",
+                msg: `Low stock: ${matchedIngredient.name} (${(currentQty - deductQty).toFixed(2)} ${matchedIngredient.unit})`,
+                ago: "just now",
+              });
+            }
+          } catch (e) {
+            failures.push({
+              name: `${matchedIngredient.name} (×${itemQty})`,
+              type: 'ingredient (name-matched)',
+              shortages: [{ reason: `Failed to deduct: ${e.message}` }]
+            });
+          }
+        } else {
+          failures.push({
+            name: `${matchedIngredient.name} (×${itemQty})`,
+            type: 'ingredient (name-matched)',
+            shortages: [{
+              name: matchedIngredient.name,
+              needed: deductQty,
+              available: currentQty,
+              unit: matchedIngredient.unit
+            }]
+          });
+        }
+      }
+    }
+
+    // Show appropriate feedback
+    if (failures.length > 0) {
+      const msg = failures.map(f => 
+        `${f.name} (${f.type}): ${f.shortages.map(s => 
+          s.needed !== undefined
+            ? `need ${s.needed}${s.unit}, have ${s.available}${s.unit}`
+            : s.reason || 'insufficient stock'
+        ).join(', ')}`
+      ).join('\n\n');
+      
+      alert(`Order saved${deductionCount > 0 ? `, ${deductionCount} item(s) deducted` : ''}, but some deductions failed:\n\n${msg}\n\nPlease restock affected items.`);
+    } else if (deductionCount > 0) {
+      alert(`Order saved! Inventory deducted for ${deductionCount} item(s).`);
+    } else {
+      alert("Order saved and added to dashboard analytics.");
+    }
     
-    console.log("Order saved:", docket);
-    alert("Order saved and added to dashboard analytics.");
-    // Optional: clear after save
     clearDocket();
   };
 
-  // Get category icon and color
   const getCategoryStyle = (category) => {
     const styles = {
-      food: { color: '#ff6b6b', bgColor: 'rgba(255, 107, 107, 0.08)', icon: '🍽️' },
-      drinks: { color: '#4dabf7', bgColor: 'rgba(77, 171, 247, 0.08)', icon: '🥤' },
-      dessert: { color: '#ff8787', bgColor: 'rgba(255, 135, 135, 0.08)', icon: '🍰' },
-      other: { color: '#748ffc', bgColor: 'rgba(116, 143, 252, 0.08)', icon: '📦' },
+      food: { accent: "#8B0000", icon: "🍽️" },
+      drinks: { accent: "#003366", icon: "🥂" },
+      dessert: { accent: "#996515", icon: "🍰" },
+      other: { accent: "#3E3E3E", icon: "📦" },
     };
     return styles[category] || styles.other;
   };
 
-  // Render category section
   const renderCategory = (title, items, category) => {
-    const style = getCategoryStyle(category);
+    const { accent, icon } = getCategoryStyle(category);
     const subtotal = calculateCategoryTotal(items);
-    
+
     return (
       <Card
         sx={{
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-          border: '2px solid',
-          borderColor: items.length > 0 ? style.color + '40' : 'rgba(226, 232, 240, 0.8)',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          height: '100%',
-          '&:hover': {
-            boxShadow: '0 8px 16px 0 rgba(0, 0, 0, 0.12)',
-            transform: 'translateY(-2px)',
-          },
+          borderRadius: "20px",
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(8px)",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+          transition: "0.3s",
+          "&:hover": { boxShadow: `0 8px 24px ${accent}25` },
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 2,
-              mb: 2.5,
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
             <Box
               sx={{
-                width: 44,
-                height: 44,
-                borderRadius: '12px',
-                bgcolor: style.bgColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                boxShadow: `0 2px 8px ${style.color}15`,
+                width: 46, height: 46, mr: 2,
+                borderRadius: "12px",
+                background: `${accent}10`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "20px",
               }}
             >
-              {style.icon}
+              {icon}
             </Box>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2, mb: 0.5 }}>
-                {title}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ letterSpacing: '0.3px' }}>
-                {items.length} item{items.length !== 1 ? 's' : ''}
-              </Typography>
-            </Box>
+            <Typography variant="h6" fontWeight={700}>
+              {title}
+            </Typography>
           </Box>
-          
-          <HintTooltip title={`Add a new ${title.toLowerCase()} item to this order. Enter the item name and price.`}>
+
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
             <Button
-              variant="contained"
               fullWidth
+              variant="contained"
               startIcon={<Plus size={18} />}
               onClick={() => addItem(category)}
               sx={{
-                mb: 2.5,
-                py: 1.25,
-                borderRadius: '10px',
-                textTransform: 'none',
+                py: 1.2,
+                borderRadius: "50px",
+                background: `linear-gradient(135deg, ${accent} 0%, ${accent}c0 100%)`,
                 fontWeight: 600,
-                fontSize: '0.9rem',
-                bgcolor: style.color,
-                color: 'white',
-                boxShadow: `0 2px 8px ${style.color}30`,
-                '&:hover': {
-                  bgcolor: style.color,
-                  filter: 'brightness(0.92)',
-                  boxShadow: `0 4px 12px ${style.color}50`,
-                  transform: 'translateY(-1px)',
-                },
-                transition: 'all 0.2s ease-in-out',
+                "&:hover": { filter: "brightness(0.9)" },
               }}
             >
               Add Item
             </Button>
-          </HintTooltip>
-          
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: '100px' }}>
-            {items.length === 0 && (
-              <Box 
-                sx={{ 
-                  py: 4, 
-                  textAlign: 'center',
-                  borderRadius: '10px',
-                  bgcolor: 'rgba(0, 0, 0, 0.02)',
-                  border: '2px dashed',
-                  borderColor: 'rgba(0, 0, 0, 0.1)',
-                }}
-              >
-                <Typography variant="body2" color="text.secondary" fontWeight={600} sx={{ mb: 0.5 }}>
-                  No items added
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Click "Add" to start
-                </Typography>
-              </Box>
-            )}
-            {items.map((item, index) => (
-              <Box
-                key={item.id}
+            <HintTooltip hint="Add a recipe with auto-pricing and inventory deduction">
+              <Button
+                variant="outlined"
+                startIcon={<ChefHat size={18} />}
+                onClick={() => openRecipeSelector(category)}
+                disabled={recipes.length === 0}
                 sx={{
-                  display: 'flex',
-                  gap: 1.5,
-                  alignItems: 'center',
-                  p: 1.75,
-                  borderRadius: '10px',
-                  border: '1.5px solid',
-                  borderColor: 'rgba(0, 0, 0, 0.08)',
-                  bgcolor: index % 2 === 0 ? 'rgba(0, 0, 0, 0.015)' : 'white',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    borderColor: style.color + '50',
-                    bgcolor: style.bgColor,
+                  py: 1.2,
+                  borderRadius: "50px",
+                  fontWeight: 600,
+                  borderColor: accent,
+                  color: accent,
+                  "&:hover": { 
+                    borderColor: accent,
+                    backgroundColor: `${accent}10`,
                   },
                 }}
               >
-                <Box
-                  sx={{
-                    minWidth: 28,
-                    height: 28,
-                    borderRadius: '8px',
-                    bgcolor: style.bgColor,
-                    color: style.color,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  {index + 1}
-                </Box>
-                <TextField
-                  placeholder="Item name"
-                  value={item.name}
-                  onChange={(e) => updateItem(category, item.id, 'name', e.target.value)}
-                  fullWidth
-                  size="small"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '8px',
-                      bgcolor: 'white',
-                      fontSize: '0.9rem',
-                      '&:hover': {
-                        bgcolor: 'white',
-                      },
-                    },
-                  }}
-                />
-                <TextField
-                  placeholder="0.00"
-                  value={item.price}
-                  onChange={(e) => updateItem(category, item.id, 'price', e.target.value)}
-                  type="number"
-                  inputProps={{ min: 0, step: '0.01' }}
-                  size="small"
-                  sx={{
-                    width: '130px',
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '8px',
-                      bgcolor: 'white',
-                      fontWeight: 600,
-                      fontSize: '0.9rem',
-                    },
-                  }}
-                  InputProps={{
-                    startAdornment: <Typography variant="body2" fontWeight={700} sx={{ mr: 0.5, color: style.color, fontSize: '0.9rem' }}>R</Typography>
-                  }}
-                />
-                <IconButton
-                  color="error"
-                  size="small"
-                  onClick={() => removeItem(category, item.id)}
-                  sx={{
-                    borderRadius: '8px',
-                    border: '1.5px solid',
-                    borderColor: 'rgba(211, 47, 47, 0.2)',
-                    width: 32,
-                    height: 32,
-                    '&:hover': {
-                      bgcolor: 'rgba(211, 47, 47, 0.08)',
-                      borderColor: 'rgba(211, 47, 47, 0.4)',
-                    },
-                  }}
-                >
-                  <Trash2 size={15} />
-                </IconButton>
+                Recipe
+              </Button>
+            </HintTooltip>
+          </Box>
+
+          {items.length === 0 ? (
+            <Box
+              sx={{
+                py: 4, textAlign: "center",
+                color: "text.secondary",
+                border: "1.5px dashed rgba(0,0,0,0.15)",
+                borderRadius: "12px",
+              }}
+            >
+              <Typography variant="body2" fontWeight={500}>
+                No items yet — click Add Item
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {items.map((item, index) => (
+                  <Box
+                    key={item.id}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      p: 1.5,
+                      borderRadius: "12px",
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: index % 2 === 0 ? "#fafafa" : "#fff",
+                      "&:hover": { borderColor: `${accent}60` },
+                    }}
+                  >
+                    <TextField
+                      placeholder="Qty"
+                      value={String(item.quantity ?? "1")}
+                      onChange={(e) => {
+                        // Keep only digits; allow temporary empty while typing
+                        const digits = (e.target.value || "").replace(/[^0-9]/g, "");
+                        updateItem(category, item.id, "quantity", digits);
+                      }}
+                      onBlur={(e) => {
+                        const digits = (e.target.value || "").replace(/[^0-9]/g, "");
+                        const n = Math.max(1, Number(digits || 1));
+                        updateItem(category, item.id, "quantity", String(n));
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      size="small"
+                      sx={{ width: 84, textAlign: 'center' }}
+                    />
+                    <TextField
+                      placeholder="Item name"
+                      value={item.name}
+                      onChange={(e) =>
+                        updateItem(category, item.id, "name", e.target.value)
+                      }
+                      fullWidth
+                      size="small"
+                      sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+                    />
+                    <TextField
+                      placeholder="0.00"
+                      value={item.price}
+                      onChange={(e) =>
+                        updateItem(category, item.id, "price", e.target.value)
+                      }
+                      type="number"
+                      size="small"
+                      sx={{ width: 180 }}
+                      InputProps={{
+                        startAdornment: (
+                          <Typography
+                            sx={{
+                              fontWeight: 700,
+                              color: accent,
+                              mr: 0.5,
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            R
+                          </Typography>
+                        ),
+                      }}
+                    />
+                    <IconButton
+                      color="error"
+                      size="small"
+                      onClick={() => removeItem(category, item.id)}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
+                ))}
               </Box>
-            ))}
-            
-            {items.length > 0 && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mt: 2,
-                  pt: 2.5,
-                  px: 2.5,
-                  pb: 1,
-                  borderTop: '2px solid',
-                  borderColor: style.color + '25',
-                  bgcolor: style.bgColor,
-                  borderRadius: '10px',
-                }}
-              >
-                <Typography variant="subtitle1" fontWeight={700} sx={{ color: style.color }}>
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="subtitle2" fontWeight={700}>
                   Subtotal
                 </Typography>
-                <Typography variant="h6" fontWeight={700} sx={{ color: style.color }}>
+                <Typography variant="subtitle1" fontWeight={700} color={accent}>
                   {currency(subtotal)}
                 </Typography>
               </Box>
-            )}
-          </Box>
+            </>
+          )}
         </CardContent>
       </Card>
     );
@@ -352,313 +470,225 @@ const ScannerPage = () => {
   return (
     <Box
       sx={{
-        p: 3,
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-        animation: 'fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-        '@keyframes fadeIn': {
-          from: { opacity: 0, transform: 'translateY(30px)' },
-          to: { opacity: 1, transform: 'translateY(0)' },
-        },
+        p: 4,
+        background: "linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%)",
+        minHeight: "100vh",
+        borderRadius: "20px",
       }}
     >
-      <SectionTitle 
-        icon={Receipt} 
-        title="Manual Order Entry"
+      <SectionTitle
+        icon={Receipt}
+        title="Order Entry"
         action={
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <HintTooltip title="Clear all items and reset the order to start fresh">
-              <Button
-                variant="outlined"
-                onClick={clearDocket}
-                sx={{
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  px: 2.5,
-                }}
-              >
-                Clear All
-              </Button>
-            </HintTooltip>
-            <HintTooltip title="Save this order and add it to sales records. The order will appear in today's orders count and financial reports">
-              <Button
-                variant="contained"
-                startIcon={<Save size={16} />}
-                onClick={saveDocket}
-                disabled={orderTotal === 0}
-                sx={{
-                  borderRadius: '10px',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  px: 2.5,
-                  boxShadow: '0 2px 8px rgba(139, 0, 0, 0.2)',
-                  '&:hover': {
-                    boxShadow: '0 4px 12px rgba(139, 0, 0, 0.3)',
-                  },
-                }}
-              >
-                Save Order
-              </Button>
-            </HintTooltip>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={clearDocket}
+              sx={{
+                borderRadius: "50px",
+                textTransform: "none",
+                fontWeight: 600,
+                px: 3,
+              }}
+            >
+              Clear All
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Save size={16} />}
+              onClick={saveDocket}
+              disabled={orderTotal === 0}
+              sx={{
+                borderRadius: "50px",
+                textTransform: "none",
+                fontWeight: 600,
+                px: 3,
+                background: "linear-gradient(135deg, #8B0000 0%, #B22222 100%)",
+                color: "#fff",
+                "&:hover": {
+                  color: "#fff",
+                  filter: "brightness(0.9)",
+                },
+              }}
+            >
+              Save Order
+            </Button>
           </Box>
         }
       />
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          {renderCategory('Food', food, 'food')}
-        </Grid>
-        <Grid item xs={12} md={6}>
-          {renderCategory('Drinks', drinks, 'drinks')}
-        </Grid>
-        <Grid item xs={12} md={6}>
-          {renderCategory('Dessert', dessert, 'dessert')}
-        </Grid>
-        <Grid item xs={12} md={6}>
-          {renderCategory('Other', other, 'other')}
-        </Grid>
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid item xs={12} md={6}>{renderCategory("Food", food, "food")}</Grid>
+        <Grid item xs={12} md={6}>{renderCategory("Drinks", drinks, "drinks")}</Grid>
+        <Grid item xs={12} md={6}>{renderCategory("Dessert", dessert, "dessert")}</Grid>
+        <Grid item xs={12} md={6}>{renderCategory("Other", other, "other")}</Grid>
       </Grid>
 
-      {/* Order Summary */}
+      {/* Summary */}
       <Card
         sx={{
-          borderRadius: '16px',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-          background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
-          border: '2px solid',
-          borderColor: orderTotal > 0 ? 'rgba(139, 0, 0, 0.2)' : 'rgba(226, 232, 240, 0.8)',
+          mt: 4,
+          borderRadius: "20px",
+          background: "rgba(255,255,255,0.85)",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+          backdropFilter: "blur(10px)",
         }}
       >
-        <CardContent sx={{ p: 3.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+        <CardContent sx={{ p: 4 }}>
+          <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
+            Order Summary
+          </Typography>
+
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography>Order Total</Typography>
+              <Typography fontWeight={700}>{currency(orderTotal)}</Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography>Amount Paid</Typography>
+              <TextField
+                placeholder="0.00"
+                value={amountPaid}
+                onChange={(e) => setAmountPaid(e.target.value)}
+                size="small"
+                type="number"
+                sx={{ width: 140 }}
+                InputProps={{
+                  startAdornment: (
+                    <Typography
+                      sx={{
+                        mr: 0.5,
+                        fontWeight: 700,
+                        color: "#8B0000",
+                      }}
+                    >
+                      R
+                    </Typography>
+                  ),
+                }}
+              />
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
             <Box
               sx={{
-                width: 44,
-                height: 44,
-                borderRadius: '12px',
-                bgcolor: 'rgba(139, 0, 0, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                color: gratuity >= 0 ? "success.main" : "error.main",
               }}
             >
-              🧾
-            </Box>
-            <Box>
-              <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
-                Order Summary
+              <Typography fontWeight={700}>
+                {gratuity >= 0 ? "Gratuity" : "Shortfall"}
               </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                Complete payment calculation
+              <Typography variant="h6" fontWeight={700}>
+                {currency(Math.abs(gratuity))}
               </Typography>
-            </Box>
-          </Box>
-          
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {/* Category breakdowns */}
-            <Box
-              sx={{
-                p: 2.5,
-                borderRadius: '12px',
-                bgcolor: 'white',
-                border: '1.5px solid',
-                borderColor: 'rgba(0, 0, 0, 0.08)',
-              }}
-            >
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 2, display: 'block', letterSpacing: '0.5px' }}>
-                CATEGORY BREAKDOWN
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontSize: '16px' }}>🍽️</Typography>
-                    <Typography variant="body2" fontWeight={500}>Food</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: '#ff6b6b' }}>
-                    {currency(foodTotal)}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontSize: '16px' }}>🥤</Typography>
-                    <Typography variant="body2" fontWeight={500}>Drinks</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: '#4dabf7' }}>
-                    {currency(drinksTotal)}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontSize: '16px' }}>🍰</Typography>
-                    <Typography variant="body2" fontWeight={500}>Dessert</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: '#ff8787' }}>
-                    {currency(dessertTotal)}
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" sx={{ fontSize: '16px' }}>📦</Typography>
-                    <Typography variant="body2" fontWeight={500}>Other</Typography>
-                  </Box>
-                  <Typography variant="body2" fontWeight={700} sx={{ color: '#748ffc' }}>
-                    {currency(otherTotal)}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-            
-            {/* Order Total */}
-            <Box
-              sx={{
-                p: 2.5,
-                borderRadius: '12px',
-                bgcolor: 'rgba(139, 0, 0, 0.06)',
-                border: '2px solid',
-                borderColor: 'rgba(139, 0, 0, 0.2)',
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#8b0000' }}>
-                  ORDER TOTAL
-                </Typography>
-                <Typography variant="h5" fontWeight={700} sx={{ color: '#8b0000' }}>
-                  {currency(orderTotal)}
-                </Typography>
-              </Box>
-            </Box>
-            
-            {/* Amount Paid */}
-            <Box
-              sx={{
-                p: 2.5,
-                borderRadius: '12px',
-                bgcolor: 'white',
-                border: '1.5px solid',
-                borderColor: 'rgba(0, 0, 0, 0.08)',
-              }}
-            >
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 2, display: 'block', letterSpacing: '0.5px' }}>
-                PAYMENT RECEIVED
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="subtitle2" fontWeight={600} sx={{ minWidth: '110px' }}>
-                  Amount Paid
-                </Typography>
-                <TextField
-                  placeholder="Enter amount"
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                  type="number"
-                  inputProps={{ min: 0, step: '0.01' }}
-                  fullWidth
-                  size="small"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '10px',
-                      bgcolor: 'rgba(0, 0, 0, 0.02)',
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                    },
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <Typography 
-                        variant="subtitle1" 
-                        sx={{ mr: 0.75, fontWeight: 700, color: '#8b0000' }}
-                      >
-                        R
-                      </Typography>
-                    )
-                  }}
-                />
-              </Box>
-            </Box>
-            
-            {/* Gratuity */}
-            <Box
-              sx={{
-                p: 3,
-                borderRadius: '12px',
-                background: gratuity >= 0 
-                  ? 'linear-gradient(135deg, rgba(76, 175, 80, 0.08) 0%, rgba(76, 175, 80, 0.04) 100%)'
-                  : 'linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(244, 67, 54, 0.04) 100%)',
-                border: '2px solid',
-                borderColor: gratuity >= 0 ? 'rgba(76, 175, 80, 0.25)' : 'rgba(244, 67, 54, 0.25)',
-                boxShadow: gratuity >= 0 
-                  ? '0 2px 12px rgba(76, 175, 80, 0.1)'
-                  : '0 2px 12px rgba(244, 67, 54, 0.1)',
-              }}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                  <Typography 
-                    variant="overline" 
-                    fontWeight={700} 
-                    sx={{ 
-                      color: gratuity >= 0 ? 'success.main' : 'error.main',
-                      letterSpacing: '0.8px',
-                      fontSize: '0.7rem',
-                    }}
-                  >
-                    {gratuity >= 0 ? '✓ GRATUITY' : '⚠ SHORTFALL'}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ mt: 0.5, display: 'block' }}>
-                    {gratuity >= 0 
-                      ? 'Customer tip amount'
-                      : 'Payment insufficient'
-                    }
-                  </Typography>
-                </Box>
-                <Typography 
-                  variant="h4" 
-                  fontWeight={700}
-                  sx={{ 
-                    color: gratuity >= 0 ? 'success.main' : 'error.main'
-                  }}
-                >
-                  {currency(Math.abs(gratuity))}
-                </Typography>
-              </Box>
-              
-              {gratuity < 0 && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    p: 1.5,
-                    borderRadius: '8px',
-                    bgcolor: 'rgba(244, 67, 54, 0.08)',
-                    border: '1px solid rgba(244, 67, 54, 0.15)',
-                  }}
-                >
-                  <Typography variant="caption" color="error" fontWeight={600} sx={{ textAlign: 'center', display: 'block' }}>
-                    ⚠️ Customer has underpaid by {currency(Math.abs(gratuity))}
-                  </Typography>
-                </Box>
-              )}
-              
-              {gratuity > 0 && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    p: 1.5,
-                    borderRadius: '8px',
-                    bgcolor: 'rgba(76, 175, 80, 0.08)',
-                    border: '1px solid rgba(76, 175, 80, 0.15)',
-                  }}
-                >
-                  <Typography variant="caption" color="success.main" fontWeight={600} sx={{ textAlign: 'center', display: 'block' }}>
-                    🎉 Thank you! Gratuity is {((gratuity / orderTotal) * 100).toFixed(1)}% of order total
-                  </Typography>
-                </Box>
-              )}
             </Box>
           </Box>
         </CardContent>
       </Card>
+
+      {/* Recipe Selector Dialog */}
+      <Dialog 
+        open={recipeDialogOpen} 
+        onClose={() => setRecipeDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Recipe to Order</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Select Recipe</InputLabel>
+              <Select
+                value={selectedRecipe?.id || ''}
+                label="Select Recipe"
+                onChange={(e) => {
+                  const recipe = recipes.find(r => r.id === e.target.value);
+                  setSelectedRecipe(recipe);
+                }}
+              >
+                {recipes.map(r => (
+                  <MenuItem key={r.id} value={r.id}>
+                    {r.name} ({r.type}) - Cost: {currency(r.cost || 0)}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Quantity (Servings)"
+              type="number"
+              value={recipeQuantity}
+              onChange={(e) => {
+                const v = e.target.value;
+                let n = parseInt(v, 10);
+                if (!Number.isFinite(n) || n < 1) n = 1;
+                setRecipeQuantity(String(n));
+              }}
+              inputProps={{ min: 1, step: 1 }}
+              fullWidth
+            />
+
+            <TextField
+              label="Price Markup (%)"
+              type="number"
+              value={recipePriceMarkup}
+              onChange={(e) => setRecipePriceMarkup(e.target.value)}
+              inputProps={{ min: 0 }}
+              fullWidth
+              helperText="Percentage added to cost to determine selling price"
+            />
+
+            {selectedRecipe && (
+              <Box 
+                sx={{ 
+                  p: 2, 
+                  borderRadius: 2, 
+                  backgroundColor: 'rgba(139, 0, 0, 0.05)',
+                  border: '1px solid rgba(139, 0, 0, 0.2)'
+                }}
+              >
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Price Calculation:
+                </Typography>
+                <Typography variant="body2">
+                  Cost per serving: {currency(selectedRecipe.cost || 0)}
+                </Typography>
+                <Typography variant="body2">
+                  Markup: {recipePriceMarkup}%
+                </Typography>
+                <Typography variant="body1" fontWeight={700} sx={{ mt: 1 }}>
+                  Selling price per serving: {currency(
+                    ((selectedRecipe.cost || 0) * (1 + Number(recipePriceMarkup || 0) / 100)).toFixed(2)
+                  )}
+                </Typography>
+                <Typography variant="body1" fontWeight={700} color="primary">
+                  Total: {currency(
+                    ((selectedRecipe.cost || 0) * (1 + Number(recipePriceMarkup || 0) / 100) * Number(recipeQuantity || 1)).toFixed(2)
+                  )}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                  ⚠️ Inventory will be deducted when order is saved
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRecipeDialogOpen(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={addRecipeToOrder}
+            disabled={!selectedRecipe}
+          >
+            Add to Order
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

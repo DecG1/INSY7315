@@ -5,6 +5,7 @@
 // to avoid subtle errors (e.g., trying to subtract grams from litres).
 import { db } from "./db.js";
 import { convertQty, toBaseQty, baseUnit } from "./units.js";
+import { addNotificationIfEnabled } from "./settingsService.js";
 
 /**
  * Cook a recipe (deduct inventory).
@@ -18,7 +19,13 @@ import { convertQty, toBaseQty, baseUnit } from "./units.js";
 export async function cookRecipe(recipe, { servings = 1 } = {}) {
   const ingList = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
   if (ingList.length === 0) {
-    await db.notifications.add({ tone: "error", msg: `Recipe "${recipe?.name ?? ""}" has no ingredients.`, ago: "just now" });
+    // Error notifications are always shown (not user-controlled)
+    await db.notifications.add({ 
+      tone: "error", 
+      msg: `Recipe "${recipe?.name ?? ""}" has no ingredients.`, 
+      ago: "just now",
+      timestamp: Date.now(),
+    });
     return { ok: false, shortages: [{ reason: "no-ingredients" }] };
   }
 
@@ -59,10 +66,12 @@ export async function cookRecipe(recipe, { servings = 1 } = {}) {
   }
 
   if (shortages.length) {
+    // Error notifications are always shown (not user-controlled)
     await db.notifications.add({
       tone: "error",
       msg: `Insufficient stock for ${recipe.name}: ` + shortages.map(s => s.name).join(", "),
       ago: "just now",
+      timestamp: Date.now(),
     });
     return { ok: false, shortages };
   }
@@ -84,17 +93,19 @@ export async function cookRecipe(recipe, { servings = 1 } = {}) {
       })();
       const newQtyBase = toBaseQty(newQty, item.unit);
       if (isFinite(thresholdBase) && thresholdBase > 0 && newQtyBase <= thresholdBase) {
-        await db.notifications.add({
+        await addNotificationIfEnabled('lowStock', {
           tone: "error",
           msg: `Low stock: ${item.name} (${newQty} ${item.unit})`,
           ago: "just now",
         });
       }
     }
+    // Success notifications are always shown (not user-controlled)
     await db.notifications.add({
       tone: "info",
       msg: `Cooked ${recipe.name} (x${servings})`,
       ago: "just now",
+      timestamp: Date.now(),
     });
   });
 

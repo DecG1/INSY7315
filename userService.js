@@ -7,14 +7,26 @@ import { hashPassword, verifyPassword } from './passwordService.js';
  * @param {string} email - User email
  * @param {string} password - Plain text password
  * @param {string} role - User role (admin, manager, staff)
+ * @param {string} name - User's full name (optional)
  * @returns {Promise<number>} User ID
  */
-export async function createUser(email, password, role = 'staff') {
+export async function createUser(email, password, role = 'staff', name = '') {
+  // Check if email already exists
+  const exists = await emailExists(email);
+  if (exists) {
+    throw new Error('User with this email already exists');
+  }
+
+  // If this is the first user, make them admin
+  const userCount = await db.users.count();
+  const finalRole = userCount === 0 ? 'admin' : role;
+
   const passwordHash = await hashPassword(password);
   const user = {
     email: email.toLowerCase().trim(),
     passwordHash,
-    role,
+    role: finalRole,
+    name: name.trim(),
     createdAt: new Date().toISOString(),
   };
   return db.users.add(user);
@@ -110,23 +122,6 @@ export async function deleteUser(userId) {
 }
 
 /**
- * Initialize default users (if no users exist)
- * Creates admin and manager accounts
- */
-export async function initializeDefaultUsers() {
-  const userCount = await db.users.count();
-  
-  if (userCount === 0) {
-    // Create default admin
-    await createUser('admin@restaurant.com', 'Admin123!', 'admin');
-    // Create default manager
-    await createUser('manager@restaurant.com', 'Manager123!', 'manager');
-    
-    console.log('Default users created');
-  }
-}
-
-/**
  * Check if email already exists
  * @param {string} email - Email to check
  * @returns {Promise<boolean>} True if email exists
@@ -134,4 +129,12 @@ export async function initializeDefaultUsers() {
 export async function emailExists(email) {
   const user = await db.users.where('email').equals(email.toLowerCase().trim()).first();
   return !!user;
+}
+
+/**
+ * Get total user count
+ * @returns {Promise<number>} Number of users
+ */
+export async function getUserCount() {
+  return db.users.count();
 }

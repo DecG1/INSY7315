@@ -21,6 +21,7 @@ import StatusChip from "./StatusChip.jsx";
 import { currency } from "./helpers.js";
 
 import { listInventory } from "./inventoryService.js";
+import { toBaseQty } from "./units.js";
 import { listRecipes } from "./recipesService.js";
 import { weeklySales, addSale } from "./analyticsService.js";
 import HintTooltip from "./HintTooltip.jsx";
@@ -90,9 +91,18 @@ export default function ReportsPage() {
   const handleGenerateReport = () => {
     // Calculate report metrics
     const totalInventoryValue = inv.reduce((sum, it) => {
-      const qty = Number(it.qty || 0);
-      const unitCost = Number(it.cost || 0);
-      return sum + qty * unitCost;
+      // Inventory valuation = current quantity (in base units) × price per base unit (ppu)
+      const qtyBase = toBaseQty(it.qty || 0, it.unit);
+      let ppu = Number(it?.ppu ?? NaN);
+      if (!Number.isFinite(ppu) || ppu <= 0) {
+        // Fallback for legacy rows without ppu: derive from total cost and purchased qty
+        const u = (it.unit || '').toLowerCase();
+        const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+        const denom = (Number(it.qty || 0) * factor) || 1; // avoid div/0
+        ppu = Number(it.cost || 0) / denom;
+      }
+      const val = Number.isFinite(qtyBase) && Number.isFinite(ppu) ? ppu * qtyBase : 0;
+      return sum + val;
     }, 0);
 
     const totalWeeklySales = week.reduce((sum, day) => sum + Number(day.sales || 0), 0);
@@ -361,13 +371,17 @@ export default function ReportsPage() {
 
   // derived metrics
   const inventoryValue = useMemo(() => {
-    // if you normalized ppu (price per base unit), use qty converted to the same base unit
-    // here we assume inventory cost is for the stored unit; if you added ppu, prefer ppu * qty_in_base
     return inv.reduce((sum, it) => {
-      // simplest: qty * cost (cost per unit)
-      const qty = Number(it.qty || 0);
-      const unitCost = Number(it.cost || 0);
-      return sum + qty * unitCost;
+      const qtyBase = toBaseQty(it.qty || 0, it.unit);
+      let ppu = Number(it?.ppu ?? NaN);
+      if (!Number.isFinite(ppu) || ppu <= 0) {
+        const u = (it.unit || '').toLowerCase();
+        const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+        const denom = (Number(it.qty || 0) * factor) || 1;
+        ppu = Number(it.cost || 0) / denom;
+      }
+      const val = Number.isFinite(qtyBase) && Number.isFinite(ppu) ? ppu * qtyBase : 0;
+      return sum + val;
     }, 0);
   }, [inv]);
 

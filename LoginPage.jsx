@@ -9,17 +9,21 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  Link,
 } from "@mui/material";
 import { Eye, EyeOff } from "lucide-react";
-import { authenticateUser } from "./userService.js";
+import { authenticateUser, createUser } from "./userService.js";
 import { setSession } from "./sessionService.js";
 import { logLogin } from "./auditService.js";
 import Logo from "./Logo.jsx"; // Import custom restaurant logo
 import HintTooltip from "./HintTooltip.jsx";
 
 export default function LoginPage({ onLoginSuccess }) {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,6 +66,71 @@ export default function LoginPage({ onLoginSuccess }) {
       setError("An error occurred during login. Please try again.");
       setLoading(false);
     }
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Create new user (first user becomes admin, others become staff)
+      await createUser(email, password, 'admin', name);
+      
+      // Auto-login after successful registration
+      const user = await authenticateUser(email, password);
+      
+      if (user) {
+        await setSession({ 
+          email: user.email, 
+          role: user.role,
+          userId: user.id 
+        });
+        
+        await logLogin(user.email, true);
+        
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+        
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Sign up error:", err);
+      if (err.message && err.message.includes("already exists")) {
+        setError("An account with this email already exists.");
+      } else {
+        setError("An error occurred during registration. Please try again.");
+      }
+      setLoading(false);
+    }
+  };
+
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setError("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setName("");
+    setShowPassword(false);
   };
 
   return (
@@ -112,7 +181,7 @@ export default function LoginPage({ onLoginSuccess }) {
             align="center"
             sx={{ mb: 1, color: "#2c3e50", letterSpacing: "-0.5px" }}
           >
-            Welcome
+            {isSignUp ? "Create Account" : "Welcome"}
           </Typography>
           
           <Typography
@@ -120,7 +189,7 @@ export default function LoginPage({ onLoginSuccess }) {
             align="center"
             sx={{ mb: 2, color: "#64748b", fontWeight: 500 }}
           >
-            Sign in to your account
+            {isSignUp ? "Sign up to get started" : "Sign in to your account"}
           </Typography>
 
           {error && (
@@ -129,8 +198,26 @@ export default function LoginPage({ onLoginSuccess }) {
             </Alert>
           )}
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={isSignUp ? handleSignUp : handleLogin}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+              {isSignUp && (
+                <TextField
+                  label="Full Name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  fullWidth
+                  required
+                  autoFocus
+                  disabled={loading}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    },
+                  }}
+                />
+              )}
+
               <TextField
                 label="Email"
                 type="email"
@@ -138,7 +225,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 onChange={(e) => setEmail(e.target.value)}
                 fullWidth
                 required
-                autoFocus
+                autoFocus={!isSignUp}
                 disabled={loading}
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -155,6 +242,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 fullWidth
                 required
                 disabled={loading}
+                helperText={isSignUp ? "Must be at least 8 characters" : ""}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -177,6 +265,23 @@ export default function LoginPage({ onLoginSuccess }) {
                 }}
               />
 
+              {isSignUp && (
+                <TextField
+                  label="Confirm Password"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  fullWidth
+                  required
+                  disabled={loading}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                    },
+                  }}
+                />
+              )}
+
               <Button
                 type="submit"
                 variant="contained"
@@ -192,20 +297,37 @@ export default function LoginPage({ onLoginSuccess }) {
                   mt: 1,
                 }}
               >
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? (isSignUp ? "Creating Account..." : "Signing in...") : (isSignUp ? "Create Account" : "Sign In")}
               </Button>
             </Box>
           </form>
 
-          <Box sx={{ mt: 2, p: 2, bgcolor: 'rgba(139, 0, 0, 0.05)', borderRadius: 2 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>
-              Default Accounts:
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              Admin: admin@restaurant.com / Admin123!
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              Manager: manager@restaurant.com / Manager123!
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              {isSignUp ? "Already have an account? " : "Don't have an account? "}
+              <Link
+                component="button"
+                type="button"
+                variant="body2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleMode();
+                }}
+                disabled={loading}
+                sx={{
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                  border: 'none',
+                  background: 'none',
+                  padding: 0,
+                  '&:hover': {
+                    textDecoration: 'underline',
+                  },
+                }}
+              >
+                {isSignUp ? "Sign In" : "Sign Up"}
+              </Link>
             </Typography>
           </Box>
         </CardContent>
