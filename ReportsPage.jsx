@@ -33,7 +33,7 @@ import {
 
 // PDF generation libraries
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export default function ReportsPage() {
   // date range inputs (not wired to filters yet)
@@ -179,8 +179,8 @@ export default function ReportsPage() {
       return;
     }
 
-    // Prepare CSV content with multiple sections
-    let csvContent = "INSY7315 - Business Report\n";
+      // Prepare CSV content with multiple sections
+      let csvContent = "Mario's Italian Restaurant - Business Report\n";
     csvContent += `Generated: ${reportData.generatedAt}\n`;
     csvContent += `Date Range: ${reportData.dateRange}\n\n`;
 
@@ -205,11 +205,20 @@ export default function ReportsPage() {
     });
     csvContent += "\n";
 
-    // Inventory section
+    // Inventory section: include Unit Cost (ppu) and computed Value
     csvContent += "INVENTORY\n";
-    csvContent += "Name,Quantity,Unit,Expiry,Cost (ZAR)\n";
+    csvContent += "Name,Quantity,Unit,Expiry,Unit Cost (ZAR),Value (ZAR)\n";
     reportData.inventory.forEach(item => {
-      csvContent += `"${item.name}",${item.qty},${item.unit},${item.expiry || 'N/A'},${(item.cost || 0).toFixed(2)}\n`;
+      const qtyBase = toBaseQty(item.qty || 0, item.unit);
+      let ppu = Number(item?.ppu ?? NaN);
+      if (!Number.isFinite(ppu) || ppu <= 0) {
+        const u = (item.unit || '').toLowerCase();
+        const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+        const denom = (Number(item.qty || 0) * factor) || 1;
+        ppu = Number(item.cost || 0) / denom;
+      }
+      const value = Number.isFinite(qtyBase) && Number.isFinite(ppu) ? ppu * qtyBase : 0;
+      csvContent += `"${item.name}",${item.qty},${item.unit},${item.expiry || 'N/A'},${ppu.toFixed(2)},${value.toFixed(2)}\n`;
     });
     csvContent += "\n";
 
@@ -249,9 +258,9 @@ export default function ReportsPage() {
     let yPos = 20; // Current Y position for content placement
 
     // Header
-    doc.setFontSize(20);
-    doc.setFont(undefined, "bold");
-    doc.text("INSY7315 - Business Report", pageWidth / 2, yPos, { align: "center" });
+      doc.setFontSize(20);
+      doc.setFont(undefined, "bold");
+      doc.text("Mario's Italian Restaurant - Business Report", pageWidth / 2, yPos, { align: "center" });
     
     yPos += 10;
     doc.setFontSize(10);
@@ -268,7 +277,7 @@ export default function ReportsPage() {
     yPos += 5;
 
     // Summary table
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [["Metric", "Value"]],
       body: [
@@ -294,7 +303,7 @@ export default function ReportsPage() {
     doc.text("Weekly Sales", 14, yPos);
     yPos += 5;
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [["Day", "Sales (ZAR)", "Costs (ZAR)", "Profit (ZAR)"]],
       body: reportData.weeklySales.map(day => [
@@ -316,22 +325,44 @@ export default function ReportsPage() {
       yPos = 20;
     }
 
-    // Inventory Section
+    // Inventory Section (show unit cost and computed value per row)
     doc.setFontSize(14);
     doc.setFont(undefined, "bold");
     doc.text("Inventory", 14, yPos);
     yPos += 5;
 
-    doc.autoTable({
-      startY: yPos,
-      head: [["Name", "Qty", "Unit", "Expiry", "Cost (ZAR)"]],
-      body: reportData.inventory.map(item => [
+    // Prepare inventory rows with unit cost (ppu) and value (ppu * qtyBase)
+    const invRows = reportData.inventory.map(item => {
+      // qty in base units
+      const qtyBase = toBaseQty(item.qty || 0, item.unit);
+      let ppu = Number(item?.ppu ?? NaN);
+      if (!Number.isFinite(ppu) || ppu <= 0) {
+        // Fallback: derive ppu from total batch cost and the stored purchase quantity
+        // If ppu is missing and qty reflects the current remaining quantity, the
+        // safest approximation is to treat the batch cost as the value for remaining
+        // quantity (so the per-unit cost equals cost / (qty * factor)). This mirrors
+        // how ppu is calculated when items are added, but note this is still a
+        // fallback — ideally ppu should be stored at add time.
+        const u = (item.unit || '').toLowerCase();
+        const factor = u === 'kg' || u === 'l' ? 1000 : 1;
+        const denom = (Number(item.qty || 0) * factor) || 1; // avoid div/0
+        ppu = Number(item.cost || 0) / denom;
+      }
+      const value = Number.isFinite(qtyBase) && Number.isFinite(ppu) ? ppu * qtyBase : 0;
+      return [
         item.name,
         item.qty.toString(),
         item.unit,
         item.expiry || "N/A",
-        (item.cost || 0).toFixed(2),
-      ]),
+        currency(ppu),
+        currency(value),
+      ];
+    });
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Name", "Qty", "Unit", "Expiry", "Unit Cost (ZAR)", "Value (ZAR)"]],
+      body: invRows,
       theme: "striped",
       headStyles: { fillColor: [139, 0, 0] },
       margin: { left: 14, right: 14 },
@@ -351,7 +382,7 @@ export default function ReportsPage() {
     doc.text("Recipes", 14, yPos);
     yPos += 5;
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [["Name", "Type", "Cost (ZAR)"]],
       body: reportData.recipes.map(recipe => [
@@ -364,9 +395,24 @@ export default function ReportsPage() {
       margin: { left: 14, right: 14 },
     });
 
-    // Save PDF with timestamp in filename
-    const filename = `INSY7315_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-    doc.save(filename);
+    // Save PDF with timestamp in filename — create blob and trigger download for
+    // better compatibility (browser + Electron renderer environments)
+      const filename = `Marios_Italian_Restaurant_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+    try {
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // Fallback to jsPDF save if blob method fails
+      doc.save(filename);
+    }
   };
 
   // derived metrics

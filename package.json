@@ -11,7 +11,8 @@
     "electron:wait": "wait-on http://localhost:5173 && electron .",
     "start:desktop": "electron .",
     "pack": "vite build && electron-builder --dir",
-    "dist": "vite build && electron-builder"
+    "dist": "vite build && electron-builder",
+    "run:unpacked": "node scripts/run-unpacked.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
